@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -49,27 +50,35 @@ public class ReservaServiceImpl implements ReservaService {
         }
 
         if (!nuevaReserva.getFechaIngreso().before(nuevaReserva.getFechaEgreso())) {
-            throw new RuntimeException("La fecha de ingreso debe ser anterior a la fecha de egreso");
+        throw new RuntimeException("La fecha de ingreso debe ser anterior a la fecha de egreso");
         }
 
         Long idHabitacion = nuevaReserva.getHabitacion().getId();
-
         Habitacion habitacion = habitacionService.buscarPorId(idHabitacion)
                 .orElseThrow(() -> new RuntimeException("La habitación no existe"));
 
         if (habitacion.getEstado() != EstadoHabitacion.LIBRE) {
-            throw new RuntimeException(
-                    "La habitación no está disponible. Estado actual: " + habitacion.getEstado()
-            );
+            throw new RuntimeException("La habitación no está disponible");
+        }
+
+        //VALIDACIÓN DE SOLAPAMIENTO
+        List<Reserva> reservasSolapadas = reservaRepository.buscarReservasSolapadas(
+                idHabitacion,
+                nuevaReserva.getFechaIngreso(),
+                nuevaReserva.getFechaEgreso()
+        );
+
+        if (!reservasSolapadas.isEmpty()) {
+            throw new RuntimeException("La habitación ya está reservada en ese rango de fechas");
         }
 
         habitacion.setEstado(EstadoHabitacion.RESERVADA);
         habitacionService.guardarHabitacion(habitacion);
-
         nuevaReserva.setHabitacion(habitacion);
 
         return reservaRepository.save(nuevaReserva);
     }
+
 
     // ==========================================================
     // CU11 - Baja lógica de PASAJERO

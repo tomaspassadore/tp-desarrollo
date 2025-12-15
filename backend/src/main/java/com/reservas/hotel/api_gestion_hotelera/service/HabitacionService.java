@@ -1,6 +1,5 @@
 package com.reservas.hotel.api_gestion_hotelera.service;
 
-import java.util.Date;
 import java.util.Optional;
 import java.util.Set;
 import java.util.List;
@@ -17,8 +16,6 @@ public interface HabitacionService {
     Habitacion guardarHabitacion(Habitacion habitacion);
 
     Set<Habitacion> mostrarPorEstado(EstadoHabitacion estado);
-
-    void verificarDisponibilidad(Long idHabitacion, Date fechaIngreso, Date fechaEgreso);
 
     Habitacion actualizarEstado(Long id, EstadoHabitacion nuevoEstado);
 

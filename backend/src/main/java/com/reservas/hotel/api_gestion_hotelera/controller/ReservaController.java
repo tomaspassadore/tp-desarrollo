@@ -72,15 +72,6 @@ public class ReservaController {
         reservaService.cancelarReserva(id);
         return ResponseEntity.noContent().build();
     }
-
-    
-    // Endpoint 2 de DELETE: Dar de baja huésped (CU11) [5] (Suponiendo que se delega a un servicio)
-    @DeleteMapping("/pasajero/{idPasajero}")
-    public ResponseEntity<Void> darBajaPasajero(@PathVariable Long idPasajero) {
-        reservaService.darBajaPasajero(idPasajero);
-        return ResponseEntity.noContent().build();
-    }
-
     
     // ==========================================================
     // 4. PUT: MODIFICAR RECURSOS (CU07: Facturar) [5]

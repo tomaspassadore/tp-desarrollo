@@ -5,7 +5,7 @@ import com.reservas.hotel.api_gestion_hotelera.entities.Factura;
 import com.reservas.hotel.api_gestion_hotelera.entities.NotaDeCredito;
 import com.reservas.hotel.api_gestion_hotelera.entities.Pago; 
 import com.reservas.hotel.api_gestion_hotelera.entities.Reserva;
-
+import com.reservas.hotel.api_gestion_hotelera.entities.enums.TipoFactura;
 // Importaciones de Repositorios (Capa de Persistencia)
 import com.reservas.hotel.api_gestion_hotelera.repository.FacturaRepository; 
 import com.reservas.hotel.api_gestion_hotelera.repository.NotaDeCreditoRepository;
@@ -41,26 +41,35 @@ public class ContabilidadServiceImpl implements ContabilidadService {
     // ==========================================================
     
     @Override
-    @Transactional 
+    @Transactional
     public Factura generarFactura(Reserva reserva) {
 
         if (reserva == null) {
-            throw new IllegalArgumentException("No se puede generar factura sin una reserva asociada.");
+            throw new IllegalArgumentException("No se puede generar factura sin una reserva");
         }
 
         Factura factura = new Factura();
         factura.setReservaAsociada(reserva);
+        factura.setFechaDeEmision(new Date());
+        factura.setTipo(TipoFactura.B);
 
-        // === LÓGICA CU07 ===
-        long noches = calcularNoches(reserva.getFechaIngreso(), reserva.getFechaEgreso());
-        double precioPorNoche = 10000.0;
+        long noches = calcularNoches(
+                reserva.getFechaIngreso(),
+                reserva.getFechaEgreso()
+        );
+
+        double precioPorNoche = reserva.getHabitacion()
+                .getTipoHabitacion()
+                .getCostoPorNoche()
+                .doubleValue();
+
         double total = noches * precioPorNoche;
 
         factura.setImporteTotal(total);
-        factura.setFechaDeEmision(new Date());
 
         return facturaRepository.save(factura);
     }
+
 
 
 

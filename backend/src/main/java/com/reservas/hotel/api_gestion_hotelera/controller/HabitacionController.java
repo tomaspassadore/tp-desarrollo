@@ -15,7 +15,6 @@ import com.reservas.hotel.api_gestion_hotelera.entities.enums.EstadoHabitacion;
 import com.reservas.hotel.api_gestion_hotelera.service.HabitacionService;
 
 import java.util.List;
-import java.util.Set;
 
 @RestController
 @RequestMapping("/api/habitaciones")

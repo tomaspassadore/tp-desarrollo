@@ -9,7 +9,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Date;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -48,11 +47,6 @@ public class HabitacionServiceImpl implements HabitacionService {
         return StreamSupport.stream(habitacionRepository.findAll().spliterator(), false)
                 .filter(h -> h.getEstado() == estado)
                 .collect(Collectors.toSet());
-    }
-
-    @Override
-    public void verificarDisponibilidad(Long idHabitacion, Date fechaIngreso, Date fechaEgreso) {
-        // Se implementa más adelante en CU04
     }
 
     @Override
