@@ -15,8 +15,8 @@ export default function AltaHuesped() {
     nombre: "",
     apellido: "",
     cuit: "",
-    dni: "",
-    fechaNacimiento: "",
+    nroDocumento: "",
+    fechaDeNacimiento: "",
     nacionalidad: "",
     email: "",
     telefono: "",
@@ -51,8 +51,8 @@ export default function AltaHuesped() {
         nombre: "",
         apellido: "",
         cuit: "",
-        dni: "",
-        fechaNacimiento: "",
+        nroDocumento: "",
+        fechaDeNacimiento: "",
         nacionalidad: "",
         email: "",
         telefono: "",
@@ -127,11 +127,11 @@ export default function AltaHuesped() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="dni">Número de documento</Label>
+                  <Label htmlFor="nroDocumento">Número de documento</Label>
                   <Input
-                    id="dni"
-                    value={formData.dni}
-                    onChange={(e) => setFormData({ ...formData, dni: e.target.value })}
+                    id="nroDocumento"
+                    value={formData.nroDocumento}
+                    onChange={(e) => setFormData({ ...formData, nroDocumento: e.target.value })}
                     required
                   />
                 </div>
@@ -139,12 +139,12 @@ export default function AltaHuesped() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="fechaNacimiento">Fecha de nacimiento</Label>
+                  <Label htmlFor="fechaDeNacimiento">Fecha de nacimiento</Label>
                   <Input
-                    id="fechaNacimiento"
+                    id="fechaDeNacimiento"
                     type="date"
-                    value={formData.fechaNacimiento}
-                    onChange={(e) => setFormData({ ...formData, fechaNacimiento: e.target.value })}
+                    value={formData.fechaDeNacimiento}
+                    onChange={(e) => setFormData({ ...formData, fechaDeNacimiento: e.target.value })}
                     required
                   />
                 </div>

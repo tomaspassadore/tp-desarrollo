@@ -1,24 +1,20 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { DashboardLayout } from "@/components/dashboard-layout"
+import { obtenerTodasHabitaciones, Habitacion } from "@/lib/api/habitaciones"
 
-const habitaciones = [
-  { numero: "101", tipo: "Individual", estado: "ocupada", huesped: "María García" },
-  { numero: "102", tipo: "Individual", estado: "libre", huesped: null },
-  { numero: "103", tipo: "Individual", estado: "mantenimiento", huesped: null },
-  { numero: "201", tipo: "Doble", estado: "ocupada", huesped: "Carlos López" },
-  { numero: "202", tipo: "Doble", estado: "libre", huesped: null },
-  { numero: "203", tipo: "Doble", estado: "ocupada", huesped: "Ana Martínez" },
-  { numero: "301", tipo: "Suite", estado: "libre", huesped: null },
-  { numero: "302", tipo: "Suite", estado: "ocupada", huesped: "Pedro Sánchez" },
-  { numero: "401", tipo: "Suite Premium", estado: "libre", huesped: null },
-  { numero: "402", tipo: "Suite Premium", estado: "reservada", huesped: null },
-]
+type HabitacionDisplay = {
+  numero: string
+  tipo: string
+  estado: string
+  huesped: string | null
+}
 
 const getEstadoColor = (estado: string) => {
-  switch (estado) {
+  switch (estado.toLowerCase()) {
     case "libre":
       return "bg-green-100 text-green-700"
     case "ocupada":
@@ -26,17 +22,100 @@ const getEstadoColor = (estado: string) => {
     case "reservada":
       return "bg-yellow-100 text-yellow-700"
     case "mantenimiento":
+    case "en_mantenimiento":
       return "bg-gray-100 text-gray-700"
     default:
       return "bg-gray-100 text-gray-700"
   }
 }
 
+const convertirEstado = (estado: string): string => {
+  switch (estado) {
+    case "LIBRE":
+      return "libre"
+    case "OCUPADA":
+      return "ocupada"
+    case "RESERVADA":
+      return "reservada"
+    case "EN_MANTENIMIENTO":
+      return "mantenimiento"
+    default:
+      return estado.toLowerCase()
+  }
+}
+
 export default function EstadoHabitaciones() {
+  const [habitaciones, setHabitaciones] = useState<HabitacionDisplay[]>([])
+  const [cargando, setCargando] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const cargarHabitaciones = async () => {
+      try {
+        setCargando(true)
+        setError(null)
+        const datos = await obtenerTodasHabitaciones()
+
+        // Convertir los datos del backend al formato que necesita el componente
+        const habitacionesMapeadas: HabitacionDisplay[] = datos.map((h: Habitacion) => ({
+          numero: h.numero,
+          tipo: h.tipoHabitacion.nombre,
+          estado: convertirEstado(h.estado),
+          huesped: null, // Por ahora no tenemos esta información directamente
+        }))
+
+        setHabitaciones(habitacionesMapeadas)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Error al cargar las habitaciones")
+        console.error("Error al cargar habitaciones:", err)
+      } finally {
+        setCargando(false)
+      }
+    }
+
+    cargarHabitaciones()
+  }, [])
+
   const libres = habitaciones.filter((h) => h.estado === "libre").length
   const ocupadas = habitaciones.filter((h) => h.estado === "ocupada").length
   const reservadas = habitaciones.filter((h) => h.estado === "reservada").length
   const mantenimiento = habitaciones.filter((h) => h.estado === "mantenimiento").length
+
+  if (cargando) {
+    return (
+      <DashboardLayout>
+        <div className="max-w-5xl mx-auto">
+          <div className="mb-8">
+            <h1 className="text-2xl font-semibold text-gray-900">Estado de Habitaciones</h1>
+            <p className="text-gray-600 mt-1">Vista general del estado de todas las habitaciones</p>
+          </div>
+          <Card className="border-gray-200">
+            <CardContent className="p-8 text-center">
+              <div className="text-gray-600">Cargando habitaciones...</div>
+            </CardContent>
+          </Card>
+        </div>
+      </DashboardLayout>
+    )
+  }
+
+  if (error) {
+    return (
+      <DashboardLayout>
+        <div className="max-w-5xl mx-auto">
+          <div className="mb-8">
+            <h1 className="text-2xl font-semibold text-gray-900">Estado de Habitaciones</h1>
+            <p className="text-gray-600 mt-1">Vista general del estado de todas las habitaciones</p>
+          </div>
+          <Card className="border-gray-200">
+            <CardContent className="p-8 text-center">
+              <div className="text-red-600">Error: {error}</div>
+            </CardContent>
+          </Card>
+        </div>
+      </DashboardLayout>
+    )
+  }
 
   return (
     <DashboardLayout>
@@ -81,23 +160,27 @@ export default function EstadoHabitaciones() {
             <CardDescription>Haga clic en una habitación para ver más detalles</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-5 gap-4">
-              {habitaciones.map((habitacion) => (
-                <Card
-                  key={habitacion.numero}
-                  className="border-gray-200 hover:shadow-md transition-shadow cursor-pointer"
-                >
-                  <CardContent className="p-4">
-                    <div className="text-lg font-bold text-gray-900 mb-1">{habitacion.numero}</div>
-                    <div className="text-xs text-gray-500 mb-2">{habitacion.tipo}</div>
-                    <Badge className={getEstadoColor(habitacion.estado)}>{habitacion.estado}</Badge>
-                    {habitacion.huesped && (
-                      <div className="text-xs text-gray-600 mt-2 truncate">{habitacion.huesped}</div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+            {habitaciones.length === 0 ? (
+              <div className="text-center py-8 text-gray-600">No hay habitaciones disponibles</div>
+            ) : (
+              <div className="grid grid-cols-5 gap-4">
+                {habitaciones.map((habitacion) => (
+                  <Card
+                    key={habitacion.numero}
+                    className="border-gray-200 hover:shadow-md transition-shadow cursor-pointer"
+                  >
+                    <CardContent className="p-4">
+                      <div className="text-lg font-bold text-gray-900 mb-1">{habitacion.numero}</div>
+                      <div className="text-xs text-gray-500 mb-2">{habitacion.tipo}</div>
+                      <Badge className={getEstadoColor(habitacion.estado)}>{habitacion.estado}</Badge>
+                      {habitacion.huesped && (
+                        <div className="text-xs text-gray-600 mt-2 truncate">{habitacion.huesped}</div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

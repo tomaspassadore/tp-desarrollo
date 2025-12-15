@@ -1,5 +1,6 @@
 package com.reservas.hotel.api_gestion_hotelera.entities;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.reservas.hotel.api_gestion_hotelera.entities.enums.EstadoPasajero;
 
 import jakarta.persistence.EnumType;
@@ -24,7 +25,10 @@ public class Pasajero {
     private String nombre;
     private String apellido;
     private String nroDocumento;
+    
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     private java.util.Date fechaDeNacimiento;
+    
     private String nacionalidad;
     private String telefono;
     private String ocupacion;

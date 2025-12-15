@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.reservas.hotel.api_gestion_hotelera.entities.Direccion;
 import com.reservas.hotel.api_gestion_hotelera.entities.Pasajero;
+import com.reservas.hotel.api_gestion_hotelera.entities.enums.EstadoPasajero;
 import com.reservas.hotel.api_gestion_hotelera.repository.DireccionRepository;
 import com.reservas.hotel.api_gestion_hotelera.repository.PasajeroRepository;
 import com.reservas.hotel.api_gestion_hotelera.service.PasajeroService;
@@ -45,6 +46,10 @@ public class PasajeroServiceImpl implements PasajeroService {
     @Override
     @Transactional
     public Pasajero registrarPasajero(Pasajero pasajero) {
+        // Inicializar el estado como ACTIVO si no está establecido
+        if (pasajero.getEstado() == null) {
+            pasajero.setEstado(EstadoPasajero.ACTIVO);
+        }
         // Si el pasajero tiene una dirección, guardarla primero
         if (pasajero.getDireccion() != null) {
             Direccion direccionGuardada = direccionRepository.save(pasajero.getDireccion());

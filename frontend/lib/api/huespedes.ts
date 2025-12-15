@@ -24,19 +24,19 @@ export type Huesped = {
   id?: number
   nombre: string
   apellido: string
-  dni?: string // Puede venir como dni o nroDocumento del backend
-  nroDocumento?: string // Campo del backend
-  telefono?: string
+  nroDocumento: string
+  telefono: string
   email?: string // Opcional
   cuit?: string // Opcional
-  fechaNacimiento?: string // Puede venir como fechaNacimiento o fechaDeNacimiento
-  fechaDeNacimiento?: string // Campo del backend
-  nacionalidad?: string
-  ocupacion?: string
-  direccion?: Direccion
+  fechaDeNacimiento: string
+  nacionalidad: string
+  ocupacion: string
+  direccion: Direccion
 }
 
-export type BuscarHuespedResponse = Huesped[]
+export type BuscarHuespedResponse = {
+  resultados: Huesped[]
+}
 
 export function buscarHuesped(payload: BuscarHuespedRequest) {
   return apiFetch<BuscarHuespedResponse>("/pasajeros/buscar", {
