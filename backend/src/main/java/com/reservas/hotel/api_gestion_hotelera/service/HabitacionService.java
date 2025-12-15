@@ -3,6 +3,7 @@ package com.reservas.hotel.api_gestion_hotelera.service;
 import java.util.Date;
 import java.util.Optional;
 import java.util.Set;
+import java.util.List;
 
 import com.reservas.hotel.api_gestion_hotelera.entities.Habitacion;
 import com.reservas.hotel.api_gestion_hotelera.entities.enums.EstadoHabitacion;
@@ -20,4 +21,6 @@ public interface HabitacionService {
     void verificarDisponibilidad(Long idHabitacion, Date fechaIngreso, Date fechaEgreso);
 
     Habitacion actualizarEstado(Long id, EstadoHabitacion nuevoEstado);
+
+    List<Habitacion> buscarDisponibles();
 }

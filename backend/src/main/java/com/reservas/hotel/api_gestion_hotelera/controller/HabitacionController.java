@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Set;
 
 @RestController
@@ -40,5 +41,10 @@ public class HabitacionController {
         } catch (IllegalArgumentException e) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
+    }
+
+    @GetMapping("/disponibles")
+    public ResponseEntity<List<Habitacion>> obtenerDisponibles() {
+        return ResponseEntity.ok(habitacionService.buscarDisponibles());
     }
 }
