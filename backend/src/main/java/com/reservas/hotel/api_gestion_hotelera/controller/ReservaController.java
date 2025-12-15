@@ -75,13 +75,12 @@ public class ReservaController {
 
     
     // Endpoint 2 de DELETE: Dar de baja huésped (CU11) [5] (Suponiendo que se delega a un servicio)
-    @DeleteMapping("/huesped/{idHuesped}")
-    public ResponseEntity<Void> darBajaHuesped(@PathVariable Long idHuesped) {
-        // En un escenario real, esto llamaría a HuéspedService.darBaja(idHuesped)
-        // Usaremos el servicio de reserva solo para ejemplificar el endpoint DELETE.
-        reservaService.darBajaHuesped(idHuesped); // Asumimos este método en ReservaService
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT); // 204 No Content es común para DELETE
+    @DeleteMapping("/pasajero/{idPasajero}")
+    public ResponseEntity<Void> darBajaPasajero(@PathVariable Long idPasajero) {
+        reservaService.darBajaPasajero(idPasajero);
+        return ResponseEntity.noContent().build();
     }
+
     
     // ==========================================================
     // 4. PUT: MODIFICAR RECURSOS (CU07: Facturar) [5]

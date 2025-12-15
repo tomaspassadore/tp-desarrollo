@@ -3,9 +3,12 @@ package com.reservas.hotel.api_gestion_hotelera.service.impl;
 import com.reservas.hotel.api_gestion_hotelera.entities.Reserva;
 import com.reservas.hotel.api_gestion_hotelera.entities.Habitacion;
 import com.reservas.hotel.api_gestion_hotelera.entities.Factura;
+import com.reservas.hotel.api_gestion_hotelera.entities.Pasajero;
 import com.reservas.hotel.api_gestion_hotelera.entities.enums.EstadoHabitacion;
+import com.reservas.hotel.api_gestion_hotelera.entities.enums.EstadoPasajero;
 
 import com.reservas.hotel.api_gestion_hotelera.repository.ReservaRepository;
+import com.reservas.hotel.api_gestion_hotelera.repository.PasajeroRepository;
 import com.reservas.hotel.api_gestion_hotelera.service.ReservaService;
 import com.reservas.hotel.api_gestion_hotelera.service.HabitacionService;
 import com.reservas.hotel.api_gestion_hotelera.service.ContabilidadService;
@@ -18,7 +21,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
-import java.util.Date;
 
 @Service
 public class ReservaServiceImpl implements ReservaService {
@@ -31,6 +33,9 @@ public class ReservaServiceImpl implements ReservaService {
 
     @Autowired
     private ContabilidadService contabilidadService;
+
+    @Autowired
+    private PasajeroRepository pasajeroRepository;
 
     // ==========================================================
     // CU04 - Reservar habitación
@@ -52,7 +57,6 @@ public class ReservaServiceImpl implements ReservaService {
         Habitacion habitacion = habitacionService.buscarPorId(idHabitacion)
                 .orElseThrow(() -> new RuntimeException("La habitación no existe"));
 
-        // VALIDACIÓN FUERTE DEL ESTADO REAL
         if (habitacion.getEstado() != EstadoHabitacion.LIBRE) {
             throw new RuntimeException(
                     "La habitación no está disponible. Estado actual: " + habitacion.getEstado()
@@ -67,15 +71,23 @@ public class ReservaServiceImpl implements ReservaService {
         return reservaRepository.save(nuevaReserva);
     }
 
+    // ==========================================================
+    // CU11 - Baja lógica de PASAJERO
+    // ==========================================================
     @Override
-    public void darBajaHuesped(Long idHuesped) {
-        // Se implementará en CU11
+    @Transactional
+    public void darBajaPasajero(Long idPasajero) {
+
+        Pasajero pasajero = pasajeroRepository.findById(idPasajero)
+                .orElseThrow(() -> new RuntimeException("Pasajero no encontrado"));
+
+        pasajero.setEstado(EstadoPasajero.INACTIVO);
+
+        pasajeroRepository.save(pasajero);
     }
 
-
-
     // ==========================================================
-    // Otros métodos (ya existentes)
+    // Otros métodos
     // ==========================================================
 
     @Override
@@ -117,11 +129,9 @@ public class ReservaServiceImpl implements ReservaService {
 
         Habitacion habitacion = reserva.getHabitacion();
 
-        // Liberar la habitación
         habitacion.setEstado(EstadoHabitacion.LIBRE);
         habitacionService.guardarHabitacion(habitacion);
 
-        // Eliminar la reserva
         reservaRepository.delete(reserva);
     }
 

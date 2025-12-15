@@ -1,5 +1,9 @@
 package com.reservas.hotel.api_gestion_hotelera.entities;
 
+import com.reservas.hotel.api_gestion_hotelera.entities.enums.EstadoPasajero;
+
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -34,4 +38,8 @@ public class Pasajero {
     @ManyToOne
     @JoinColumn(name = "direccion_id")
     private Direccion direccion;
+    
+    @Enumerated(EnumType.STRING)
+    private EstadoPasajero estado;
+
 }
