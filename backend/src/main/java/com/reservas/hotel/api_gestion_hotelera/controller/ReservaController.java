@@ -67,12 +67,12 @@ public class ReservaController {
     // ==========================================================
 
     // Endpoint 1 de DELETE: Cancelar una reserva (CU06)
-    @DeleteMapping("/{id}")
+   @DeleteMapping("/{id}")
     public ResponseEntity<Void> cancelarReserva(@PathVariable Long id) {
-        reservaService.cancelarReserva(id); // Llama al servicio [8]
-        // Se puede devolver 200 OK, o 204 No Content
-        return new ResponseEntity<>(HttpStatus.OK);
+        reservaService.cancelarReserva(id);
+        return ResponseEntity.noContent().build();
     }
+
     
     // Endpoint 2 de DELETE: Dar de baja huésped (CU11) [5] (Suponiendo que se delega a un servicio)
     @DeleteMapping("/huesped/{idHuesped}")

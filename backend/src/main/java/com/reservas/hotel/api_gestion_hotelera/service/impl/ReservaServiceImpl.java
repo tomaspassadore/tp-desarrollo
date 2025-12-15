@@ -1,141 +1,136 @@
 package com.reservas.hotel.api_gestion_hotelera.service.impl;
 
-// Importaciones de Entidades
 import com.reservas.hotel.api_gestion_hotelera.entities.Reserva;
-import com.reservas.hotel.api_gestion_hotelera.entities.Factura; // Entidad Factura [4]
+import com.reservas.hotel.api_gestion_hotelera.entities.Habitacion;
+import com.reservas.hotel.api_gestion_hotelera.entities.Factura;
+import com.reservas.hotel.api_gestion_hotelera.entities.enums.EstadoHabitacion;
 
-// Importaciones de Contratos y Repositorios
-import com.reservas.hotel.api_gestion_hotelera.service.ReservaService;
-import com.reservas.hotel.api_gestion_hotelera.service.ContabilidadService;
 import com.reservas.hotel.api_gestion_hotelera.repository.ReservaRepository;
+import com.reservas.hotel.api_gestion_hotelera.service.ReservaService;
+import com.reservas.hotel.api_gestion_hotelera.service.HabitacionService;
+import com.reservas.hotel.api_gestion_hotelera.service.ContabilidadService;
 
-// Importaciones de Spring y Utilidades
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service; // Estereotipo de la Capa de Servicio
-import org.springframework.transaction.annotation.Transactional; // Para lógica transaccional
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
+import java.util.Date;
 
 @Service
 public class ReservaServiceImpl implements ReservaService {
 
-    // Inyección de Dependencias: Conexión con la persistencia
     @Autowired
     private ReservaRepository reservaRepository;
 
-    // Inyección para colaboración con otros servicios (ej. para facturación CU07)
     @Autowired
-    private ContabilidadService contabilidadService; 
-    
-    // ==========================================================
-    // MÉTODOS DE MANIPULACIÓN (POST/PUT/DELETE)
-    // ==========================================================
+    private HabitacionService habitacionService;
 
-    /**
-     * Implementa CU04: Crea y guarda una nueva reserva.
-     */
+    @Autowired
+    private ContabilidadService contabilidadService;
+
+    // ==========================================================
+    // CU04 - Reservar habitación
+    // ==========================================================
     @Override
     @Transactional
     public Reserva crearReserva(Reserva nuevaReserva) {
-        // Lógica de negocio 1: Implementación de reglas y restricciones [1] (ej. verificar disponibilidad)
-        // ...
-        
-        // Delegación a la capa de persistencia [5]
-        return reservaRepository.save(nuevaReserva); 
+
+        if (nuevaReserva.getFechaIngreso() == null || nuevaReserva.getFechaEgreso() == null) {
+            throw new RuntimeException("Las fechas de ingreso y egreso son obligatorias");
+        }
+
+        if (!nuevaReserva.getFechaIngreso().before(nuevaReserva.getFechaEgreso())) {
+            throw new RuntimeException("La fecha de ingreso debe ser anterior a la fecha de egreso");
+        }
+
+        Long idHabitacion = nuevaReserva.getHabitacion().getId();
+
+        Habitacion habitacion = habitacionService.buscarPorId(idHabitacion)
+                .orElseThrow(() -> new RuntimeException("La habitación no existe"));
+
+        // VALIDACIÓN FUERTE DEL ESTADO REAL
+        if (habitacion.getEstado() != EstadoHabitacion.LIBRE) {
+            throw new RuntimeException(
+                    "La habitación no está disponible. Estado actual: " + habitacion.getEstado()
+            );
+        }
+
+        habitacion.setEstado(EstadoHabitacion.RESERVADA);
+        habitacionService.guardarHabitacion(habitacion);
+
+        nuevaReserva.setHabitacion(habitacion);
+
+        return reservaRepository.save(nuevaReserva);
     }
 
-    /**
-     * Inicia el proceso de check-in para una reserva existente.
-     */
+    @Override
+    public void darBajaHuesped(Long idHuesped) {
+        // Se implementará en CU11
+    }
+
+
+
+    // ==========================================================
+    // Otros métodos (ya existentes)
+    // ==========================================================
+
     @Override
     @Transactional
     public Reserva realizarCheckIn(Reserva reserva) {
-        // Lógica de negocio 2: Actualizar estado de la reserva y/o habitación a OCUPADA [4]
-        // ...
+        Habitacion habitacion = reserva.getHabitacion();
+        habitacion.setEstado(EstadoHabitacion.OCUPADA);
+        habitacionService.guardarHabitacion(habitacion);
         return reservaRepository.save(reserva);
     }
-    
-    /**
-     * Modifica los datos de una reserva existente.
-     */
+
     @Override
     @Transactional
     public Reserva modificarReserva(Long id, Reserva datosActualizados) {
-        // 1. Buscar la reserva actual (asegurando que exista)
-        Reserva reservaExistente = reservaRepository.findById(id)
+        Reserva reserva = reservaRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Reserva no encontrada"));
-        
-        // 2. Aplicar las modificaciones (ej. cambiar fechas, ocupación)
-        reservaExistente.setFechaIngreso(datosActualizados.getFechaIngreso());
-        reservaExistente.setFechaEgreso(datosActualizados.getFechaEgreso());
-        // ... setear otros atributos según la lógica
-        
-        // 3. Guardar y delegar la persistencia
-        return reservaRepository.save(reservaExistente);
+
+        reserva.setFechaIngreso(datosActualizados.getFechaIngreso());
+        reserva.setFechaEgreso(datosActualizados.getFechaEgreso());
+
+        return reservaRepository.save(reserva);
     }
 
-    /**
-     * Implementa CU07: Procesa la facturación final de una reserva.
-     */
     @Override
     @Transactional
     public Factura facturar(Long id) {
         Reserva reserva = reservaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("No se puede facturar: Reserva no encontrada"));
+                .orElseThrow(() -> new RuntimeException("Reserva no encontrada"));
 
-        // Lógica de negocio 3: Generar la factura y actualizar el estado
-        // Delega la creación de la Factura al ContabilidadService (CU07)
-        Factura facturaGenerada = contabilidadService.generarFactura(reserva);
-        
-        // Actualizar el estado de la reserva/habitacion, etc.
-        // ...
-        
-        return facturaGenerada;
+        return contabilidadService.generarFactura(reserva);
     }
 
-    /**
-     * Implementa CU06: Cancela una reserva (lógica de negocio).
-     */
     @Override
     @Transactional
     public void cancelarReserva(Long id) {
-        // Lógica de negocio 4: Validar si se puede cancelar (ej. no debe estar ya facturada)
-        // ...
-        
-        reservaRepository.deleteById(id);
-        // Lógica 5: La habitación asociada debería volver a estado LIBRE o RESERVADA (si hay una reserva siguiente) [4]
-    }
-    
-    /**
-     * Implementa CU11: Da de baja a un huésped/pasajero asociado a la reserva.
-     */
-    @Override
-    @Transactional
-    public void darBajaHuesped(Long idHuesped) {
-        // Lógica de negocio 6: Aquí iría la lógica específica para desvincular o eliminar al pasajero
-        // Podría implicar buscar reservas activas y verificar si el huésped es el responsable.
-        // ...
+
+        Reserva reserva = reservaRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Reserva no encontrada"));
+
+        Habitacion habitacion = reserva.getHabitacion();
+
+        // Liberar la habitación
+        habitacion.setEstado(EstadoHabitacion.LIBRE);
+        habitacionService.guardarHabitacion(habitacion);
+
+        // Eliminar la reserva
+        reservaRepository.delete(reserva);
     }
 
-    // ==========================================================
-    // MÉTODOS DE CONSULTA (GET)
-    // ==========================================================
-
-    /**
-     * Implementa CU05: Busca y devuelve todas las reservas.
-     */
     @Override
     public Set<Reserva> buscarTodas() {
-        // Convierte el Iterable devuelto por CrudRepository.findAll() en un Set [6]
         return StreamSupport.stream(reservaRepository.findAll().spliterator(), false)
                 .collect(Collectors.toSet());
     }
 
-    /**
-     * Busca una reserva específica por ID.
-     */
     @Override
     public Optional<Reserva> buscarPorId(Long id) {
         return reservaRepository.findById(id);
