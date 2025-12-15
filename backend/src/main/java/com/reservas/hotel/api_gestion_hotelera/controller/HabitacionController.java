@@ -10,9 +10,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.reservas.hotel.api_gestion_hotelera.entities.Habitacion;
-import com.reservas.hotel.api_gestion_hotelera.entities.enums.EstadoHabitacion;
-import com.reservas.hotel.api_gestion_hotelera.service.HabitacionService;
+import java.util.List;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/api/habitaciones")
@@ -43,5 +42,10 @@ public class HabitacionController {
         } catch (IllegalArgumentException e) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
+    }
+
+    @GetMapping("/disponibles")
+    public ResponseEntity<List<Habitacion>> obtenerDisponibles() {
+        return ResponseEntity.ok(habitacionService.buscarDisponibles());
     }
 }

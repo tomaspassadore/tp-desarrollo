@@ -81,10 +81,14 @@ public class ReservaServiceImpl implements ReservaService {
         Pasajero pasajero = pasajeroRepository.findById(idPasajero)
                 .orElseThrow(() -> new RuntimeException("Pasajero no encontrado"));
 
-        pasajero.setEstado(EstadoPasajero.INACTIVO);
+        if (pasajero.getEstado() == EstadoPasajero.INACTIVO) {
+            throw new RuntimeException("El pasajero ya se encuentra dado de baja");
+        }
 
+        pasajero.setEstado(EstadoPasajero.INACTIVO);
         pasajeroRepository.save(pasajero);
     }
+
 
     // ==========================================================
     // Otros métodos
@@ -114,11 +118,21 @@ public class ReservaServiceImpl implements ReservaService {
     @Override
     @Transactional
     public Factura facturar(Long id) {
+
         Reserva reserva = reservaRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Reserva no encontrada"));
 
+        EstadoHabitacion estadoHabitacion = reserva.getHabitacion().getEstado();
+
+        if (estadoHabitacion == EstadoHabitacion.LIBRE ||
+            estadoHabitacion == EstadoHabitacion.EN_MANTENIMIENTO) {
+
+            throw new RuntimeException("No se puede facturar una reserva inactiva");
+        }
+
         return contabilidadService.generarFactura(reserva);
     }
+
 
     @Override
     @Transactional

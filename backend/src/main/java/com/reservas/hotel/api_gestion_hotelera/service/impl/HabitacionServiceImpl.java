@@ -8,6 +8,7 @@ import com.reservas.hotel.api_gestion_hotelera.service.HabitacionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Date;
 import java.util.Optional;
 import java.util.Set;
@@ -24,6 +25,12 @@ public class HabitacionServiceImpl implements HabitacionService {
     public Optional<Habitacion> buscarPorId(Long id) {
         return habitacionRepository.findById(id);
     }
+
+    @Override
+    public List<Habitacion> buscarDisponibles() {
+        return habitacionRepository.findByEstado(EstadoHabitacion.LIBRE);
+    }
+
 
     @Override
     public Set<Habitacion> buscarTodas() {
