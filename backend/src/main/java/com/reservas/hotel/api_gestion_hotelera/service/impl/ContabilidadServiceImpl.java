@@ -17,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service; 
 import org.springframework.transaction.annotation.Transactional; // Para manejar la lógica de negocio como una unidad atómica
 
+import java.util.Date;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -42,15 +43,27 @@ public class ContabilidadServiceImpl implements ContabilidadService {
     @Override
     @Transactional 
     public Factura generarFactura(Reserva reserva) {
+
         if (reserva == null) {
-             throw new IllegalArgumentException("No se puede generar factura sin una reserva asociada.");
+            throw new IllegalArgumentException("No se puede generar factura sin una reserva asociada.");
         }
-        
+
         Factura factura = new Factura();
         factura.setReservaAsociada(reserva);
-        
-        return facturaRepository.save(factura); 
+
+        // === LÓGICA CU07 ===
+        long noches = calcularNoches(reserva.getFechaIngreso(), reserva.getFechaEgreso());
+        double precioPorNoche = 10000.0;
+        double total = noches * precioPorNoche;
+
+        factura.setImporteTotal(total);
+        factura.setFechaDeEmision(new Date());
+
+        return facturaRepository.save(factura);
     }
+
+
+
     
     @Override // <--- Implementa ContabilidadService.buscarFacturaPorId(Long)
     public Optional<Factura> buscarFacturaPorId(Long id) {
@@ -100,13 +113,16 @@ public class ContabilidadServiceImpl implements ContabilidadService {
         return pagoRepository.findById(id);
     }
     
-    // NOTA: Si ContabilidadService incluye buscarTodosPagos(), también debería
-    // implementarse aquí:
-    /*
-    @Override
-    public Set<Pago> buscarTodosPagos() {
-        return StreamSupport.stream(pagoRepository.findAll().spliterator(), false)
-               .collect(Collectors.toSet());
+    private long calcularNoches(java.util.Date ingreso, java.util.Date egreso) {
+        java.time.LocalDate in = ingreso.toInstant()
+                .atZone(java.time.ZoneId.systemDefault())
+                .toLocalDate();
+
+        java.time.LocalDate out = egreso.toInstant()
+                .atZone(java.time.ZoneId.systemDefault())
+                .toLocalDate();
+
+        return java.time.temporal.ChronoUnit.DAYS.between(in, out);
     }
-    */
+
 }
