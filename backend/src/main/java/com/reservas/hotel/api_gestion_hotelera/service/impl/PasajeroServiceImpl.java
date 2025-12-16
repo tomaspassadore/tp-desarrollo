@@ -59,6 +59,34 @@ public class PasajeroServiceImpl implements PasajeroService {
         return pasajeroRepository.save(pasajero);
     }
 
+    @Override
+    @Transactional
+    public Pasajero actualizarPasajero(Long id, Pasajero pasajero) {
+        Pasajero existente = pasajeroRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Pasajero no encontrado"));
+
+        existente.setNombre(pasajero.getNombre());
+        existente.setApellido(pasajero.getApellido());
+        existente.setNroDocumento(pasajero.getNroDocumento());
+        existente.setTelefono(pasajero.getTelefono());
+        existente.setEmail(pasajero.getEmail());
+        existente.setCuit(pasajero.getCuit());
+        existente.setFechaDeNacimiento(pasajero.getFechaDeNacimiento());
+        existente.setNacionalidad(pasajero.getNacionalidad());
+        existente.setOcupacion(pasajero.getOcupacion());
+        if (pasajero.getEstado() != null) {
+            existente.setEstado(pasajero.getEstado());
+        }
+
+        if (pasajero.getDireccion() != null) {
+            Direccion direccion = pasajero.getDireccion();
+            Direccion direccionGuardada = direccionRepository.save(direccion);
+            existente.setDireccion(direccionGuardada);
+        }
+
+        return pasajeroRepository.save(existente);
+    }
+
     /**
      * Busca huéspedes por un criterio específico (dni, nombre o apellido)
      * @param criterio El tipo de búsqueda: "dni", "nombre" o "apellido"

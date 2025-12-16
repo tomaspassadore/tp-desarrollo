@@ -39,9 +39,12 @@ export type BuscarHuespedResponse = {
 }
 
 export function buscarHuesped(payload: BuscarHuespedRequest) {
-  return apiFetch<BuscarHuespedResponse>("/pasajeros/buscar", {
+  return apiFetch<Huesped[] | BuscarHuespedResponse>("/pasajeros/buscar", {
     method: "POST",
     json: payload,
+  }).then((data) => {
+    if (Array.isArray(data)) return data
+    return data?.resultados ?? []
   })
 }
 
@@ -49,5 +52,18 @@ export function darAltaHuesped(payload: Huesped) {
   return apiFetch("/pasajeros/dar-alta", {
     method: "POST",
     json: payload,
+  })
+}
+
+export function actualizarHuesped(id: number, payload: Huesped) {
+  return apiFetch<Huesped>(`/pasajeros/${id}`, {
+    method: "PUT",
+    json: payload,
+  })
+}
+
+export function eliminarHuesped(id: number) {
+  return apiFetch<void>(`/pasajeros/${id}`, {
+    method: "DELETE",
   })
 }

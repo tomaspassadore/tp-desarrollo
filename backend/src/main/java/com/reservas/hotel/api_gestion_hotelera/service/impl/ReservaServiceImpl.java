@@ -1,28 +1,27 @@
 package com.reservas.hotel.api_gestion_hotelera.service.impl;
 
-import com.reservas.hotel.api_gestion_hotelera.exception.ConflictoReservaException;
-import com.reservas.hotel.api_gestion_hotelera.entities.Reserva;
-import com.reservas.hotel.api_gestion_hotelera.entities.Habitacion;
-import com.reservas.hotel.api_gestion_hotelera.entities.Factura;
-import com.reservas.hotel.api_gestion_hotelera.entities.Pasajero;
-import com.reservas.hotel.api_gestion_hotelera.entities.enums.EstadoHabitacion;
-import com.reservas.hotel.api_gestion_hotelera.entities.enums.EstadoPasajero;
-
-import com.reservas.hotel.api_gestion_hotelera.repository.ReservaRepository;
-import com.reservas.hotel.api_gestion_hotelera.repository.PasajeroRepository;
-import com.reservas.hotel.api_gestion_hotelera.service.ReservaService;
-import com.reservas.hotel.api_gestion_hotelera.service.HabitacionService;
-import com.reservas.hotel.api_gestion_hotelera.service.ContabilidadService;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Optional;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
+import com.reservas.hotel.api_gestion_hotelera.entities.Factura;
+import com.reservas.hotel.api_gestion_hotelera.entities.Habitacion;
+import com.reservas.hotel.api_gestion_hotelera.entities.Pasajero;
+import com.reservas.hotel.api_gestion_hotelera.entities.Reserva;
+import com.reservas.hotel.api_gestion_hotelera.entities.enums.EstadoHabitacion;
+import com.reservas.hotel.api_gestion_hotelera.entities.enums.EstadoPasajero;
+import com.reservas.hotel.api_gestion_hotelera.exception.ConflictoReservaException;
+import com.reservas.hotel.api_gestion_hotelera.repository.PasajeroRepository;
+import com.reservas.hotel.api_gestion_hotelera.repository.ReservaRepository;
+import com.reservas.hotel.api_gestion_hotelera.service.ContabilidadService;
+import com.reservas.hotel.api_gestion_hotelera.service.HabitacionService;
+import com.reservas.hotel.api_gestion_hotelera.service.ReservaService;
 
 @Service
 public class ReservaServiceImpl implements ReservaService {
@@ -39,9 +38,6 @@ public class ReservaServiceImpl implements ReservaService {
     @Autowired
     private PasajeroRepository pasajeroRepository;
 
-    // ==========================================================
-    // CU04 - Reservar habitación
-    // ==========================================================
     @Override
     @Transactional
     public Reserva crearReserva(Reserva nuevaReserva) {
@@ -180,7 +176,6 @@ public class ReservaServiceImpl implements ReservaService {
         return StreamSupport.stream(reservaRepository.findAll().spliterator(), false)
                 .collect(Collectors.toSet());
     }
-
     @Override
     public Optional<Reserva> buscarPorId(Long id) {
         return reservaRepository.findById(id);

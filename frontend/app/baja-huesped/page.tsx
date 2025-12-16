@@ -7,22 +7,88 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { DashboardLayout } from "@/components/dashboard-layout"
+import { buscarHuesped, eliminarHuesped, Huesped } from "@/lib/api/huespedes"
+import { toast } from "@/components/ui/use-toast"
 
 export default function BajaHuesped() {
   const [dni, setDni] = useState("")
   const [huespedEncontrado, setHuespedEncontrado] = useState(false)
+  const [huesped, setHuesped] = useState<Huesped | null>(null)
+  const [cargando, setCargando] = useState(false)
+  const [eliminando, setEliminando] = useState(false)
 
-  const huesped = {
-    nombre: "María García López",
-    dni: "12345678A",
-    telefono: "612345678",
-    email: "maria@email.com",
-    reservasActivas: 0,
+  const handleBuscar = async () => {
+    const dniTrim = dni.trim()
+    if (!dniTrim) {
+      toast({
+        title: "DNI requerido",
+        description: "Ingresá el DNI del huésped para buscarlo.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      setCargando(true)
+      const encontrados = await buscarHuesped({ criterio: "dni", valor: dniTrim })
+
+      if (encontrados.length === 0) {
+        setHuesped(null)
+        setHuespedEncontrado(false)
+        toast({
+          title: "Sin resultados",
+          description: "No se encontró ningún huésped con ese DNI.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      const h = encontrados[0]
+      setHuesped(h)
+      setHuespedEncontrado(true)
+    } catch (err) {
+      console.error("Error al buscar huésped:", err)
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Error al buscar el huésped",
+        variant: "destructive",
+      })
+      setHuesped(null)
+      setHuespedEncontrado(false)
+    } finally {
+      setCargando(false)
+    }
   }
 
-  const handleBuscar = () => {
-    if (dni) {
-      setHuespedEncontrado(true)
+  const handleEliminar = async () => {
+    if (!huesped?.id) {
+      toast({
+        title: "Huésped no cargado",
+        description: "Buscá un huésped por DNI antes de eliminar.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      setEliminando(true)
+      await eliminarHuesped(huesped.id)
+      toast({
+        title: "Huésped eliminado",
+        description: `Se dio de baja al huésped con DNI ${huesped.nroDocumento}.`,
+      })
+      setHuesped(null)
+      setHuespedEncontrado(false)
+      setDni("")
+    } catch (err) {
+      console.error("Error al eliminar huésped:", err)
+      toast({
+        title: "No se pudo eliminar",
+        description: err instanceof Error ? err.message : "Error al eliminar al huésped",
+        variant: "destructive",
+      })
+    } finally {
+      setEliminando(false)
     }
   }
 
@@ -50,14 +116,14 @@ export default function BajaHuesped() {
                   />
                 </div>
               </div>
-              <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleBuscar}>
-                Buscar
+              <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleBuscar} disabled={cargando || eliminando}>
+                {cargando ? "Buscando..." : "Buscar"}
               </Button>
             </div>
           </CardContent>
         </Card>
 
-        {huespedEncontrado && (
+        {huespedEncontrado && huesped && (
           <Card className="border-gray-200">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
@@ -70,23 +136,43 @@ export default function BajaHuesped() {
               <div className="bg-gray-50 rounded-lg p-4 space-y-3">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Nombre:</span>
-                  <span className="font-medium">{huesped.nombre}</span>
+                  <span className="font-medium">{huesped.nombre ?? "-"}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">DNI:</span>
-                  <span className="font-medium">{huesped.dni}</span>
+                  <span className="font-medium">{huesped.nroDocumento ?? "-"}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Teléfono:</span>
-                  <span className="font-medium">{huesped.telefono}</span>
+                  <span className="font-medium">{huesped.telefono ?? "-"}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Email:</span>
-                  <span className="font-medium">{huesped.email}</span>
+                  <span className="font-medium">{huesped.email ?? "-"}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Reservas activas:</span>
-                  <span className="font-medium">{huesped.reservasActivas}</span>
+                  <span className="text-gray-600">Nacionalidad:</span>
+                  <span className="font-medium">{huesped.nacionalidad ?? "-"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Ocupación:</span>
+                  <span className="font-medium">{huesped.ocupacion ?? "-"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Dirección:</span>
+                  <span className="font-medium">
+                    {[
+                      huesped.direccion?.calle,
+                      huesped.direccion?.numero,
+                      huesped.direccion?.departamento,
+                      huesped.direccion?.piso,
+                      huesped.direccion?.localidad,
+                      huesped.direccion?.provincia,
+                      huesped.direccion?.pais,
+                    ]
+                      .filter(Boolean)
+                      .join(" ") || "-"}
+                  </span>
                 </div>
               </div>
 
@@ -104,8 +190,8 @@ export default function BajaHuesped() {
                 <Button variant="outline" className="flex-1 bg-transparent" onClick={() => setHuespedEncontrado(false)}>
                   Cancelar
                 </Button>
-                <Button variant="destructive" className="flex-1">
-                  Confirmar Baja
+                <Button variant="destructive" className="flex-1" onClick={handleEliminar} disabled={eliminando}>
+                  {eliminando ? "Eliminando..." : "Confirmar Baja"}
                 </Button>
               </div>
             </CardContent>

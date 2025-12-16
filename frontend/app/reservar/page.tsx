@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { CalendarPlus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -20,8 +20,22 @@ export default function ReservarHabitacion() {
     numPersonas: "",
   })
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+  // Obtener la fecha actual en formato YYYY-MM-DD
+  const today = useMemo(() => {
+    const date = new Date()
+    return date.toISOString().split('T')[0]
+  }, [])
+
+  // Calcular la fecha mínima para fecha de salida (día siguiente a fecha de entrada)
+  const minFechaSalida = useMemo(() => {
+    if (!formData.fechaEntrada) return today
+
+    const fechaEntrada = new Date(formData.fechaEntrada + 'T00:00:00')
+    fechaEntrada.setDate(fechaEntrada.getDate() + 1)
+    return fechaEntrada.toISOString().split('T')[0]
+  }, [formData.fechaEntrada, today])
+
+  const handleSubmit = () => {
     console.log("Reserva:", formData)
   }
 
@@ -42,7 +56,7 @@ export default function ReservarHabitacion() {
             <CardDescription>Ingrese los datos de la reserva</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="huesped">DNI del Huésped</Label>
                 <Input
@@ -75,6 +89,7 @@ export default function ReservarHabitacion() {
                   <Input
                     id="fechaEntrada"
                     type="date"
+                    min={today}
                     value={formData.fechaEntrada}
                     onChange={(e) => setFormData({ ...formData, fechaEntrada: e.target.value })}
                   />
@@ -84,6 +99,7 @@ export default function ReservarHabitacion() {
                   <Input
                     id="fechaSalida"
                     type="date"
+                    min={minFechaSalida}
                     value={formData.fechaSalida}
                     onChange={(e) => setFormData({ ...formData, fechaSalida: e.target.value })}
                   />
@@ -103,10 +119,10 @@ export default function ReservarHabitacion() {
                 />
               </div>
 
-              <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700">
+              <Button onClick={handleSubmit} className="w-full bg-blue-600 hover:bg-blue-700">
                 Confirmar Reserva
               </Button>
-            </form>
+            </div>
           </CardContent>
         </Card>
       </div>

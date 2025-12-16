@@ -18,6 +18,8 @@ public interface PasajeroService {
     
     // Operación CRUD para el controlador
     Pasajero registrarPasajero(Pasajero pasajero);
+
+    Pasajero actualizarPasajero(Long id, Pasajero pasajero);
     
     // Buscar huéspedes por criterio (dni, nombre o apellido)
     List<Pasajero> buscarHuesped(String criterio, String valor);

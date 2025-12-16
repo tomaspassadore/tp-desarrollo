@@ -46,6 +46,7 @@ const convertirEstado = (estado: string): string => {
 
 export default function EstadoHabitaciones() {
   const [habitaciones, setHabitaciones] = useState<HabitacionDisplay[]>([])
+  const [filtroEstado, setFiltroEstado] = useState<string | null>(null)
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -80,6 +81,17 @@ export default function EstadoHabitaciones() {
   const ocupadas = habitaciones.filter((h) => h.estado === "ocupada").length
   const reservadas = habitaciones.filter((h) => h.estado === "reservada").length
   const mantenimiento = habitaciones.filter((h) => h.estado === "mantenimiento").length
+
+  const habitacionesFiltradas = filtroEstado
+    ? habitaciones.filter((h) => h.estado === filtroEstado)
+    : habitaciones
+
+  const toggleFiltro = (estado: string) => {
+    setFiltroEstado((prev) => (prev === estado ? null : estado))
+  }
+
+  const cardClase = (estado: string, colorTexto: string) =>
+    `border-gray-200 cursor-pointer transition-shadow ${filtroEstado === estado ? "ring-2 ring-blue-500 shadow-md" : ""} ${colorTexto}`
 
   if (cargando) {
     return (
@@ -127,26 +139,26 @@ export default function EstadoHabitaciones() {
 
         {/* Resumen */}
         <div className="grid grid-cols-4 gap-4 mb-8">
-          <Card className="border-gray-200">
-            <CardContent className="p-4 text-center">
+          <Card className={cardClase("libre", "")} onClick={() => toggleFiltro("libre")}>
+            <CardContent className="p-4 text-center select-none">
               <div className="text-2xl font-bold text-green-600">{libres}</div>
               <div className="text-sm text-gray-600">Libres</div>
             </CardContent>
           </Card>
-          <Card className="border-gray-200">
-            <CardContent className="p-4 text-center">
+          <Card className={cardClase("ocupada", "")} onClick={() => toggleFiltro("ocupada")}>
+            <CardContent className="p-4 text-center select-none">
               <div className="text-2xl font-bold text-red-600">{ocupadas}</div>
               <div className="text-sm text-gray-600">Ocupadas</div>
             </CardContent>
           </Card>
-          <Card className="border-gray-200">
-            <CardContent className="p-4 text-center">
+          <Card className={cardClase("reservada", "")} onClick={() => toggleFiltro("reservada")}>
+            <CardContent className="p-4 text-center select-none">
               <div className="text-2xl font-bold text-yellow-600">{reservadas}</div>
               <div className="text-sm text-gray-600">Reservadas</div>
             </CardContent>
           </Card>
-          <Card className="border-gray-200">
-            <CardContent className="p-4 text-center">
+          <Card className={cardClase("mantenimiento", "")} onClick={() => toggleFiltro("mantenimiento")}>
+            <CardContent className="p-4 text-center select-none">
               <div className="text-2xl font-bold text-gray-600">{mantenimiento}</div>
               <div className="text-sm text-gray-600">Mantenimiento</div>
             </CardContent>
@@ -157,14 +169,13 @@ export default function EstadoHabitaciones() {
         <Card className="border-gray-200">
           <CardHeader>
             <CardTitle className="text-lg">Todas las Habitaciones</CardTitle>
-            <CardDescription>Haga clic en una habitación para ver más detalles</CardDescription>
           </CardHeader>
           <CardContent>
-            {habitaciones.length === 0 ? (
+            {habitacionesFiltradas.length === 0 ? (
               <div className="text-center py-8 text-gray-600">No hay habitaciones disponibles</div>
             ) : (
               <div className="grid grid-cols-5 gap-4">
-                {habitaciones.map((habitacion) => (
+                {habitacionesFiltradas.map((habitacion) => (
                   <Card
                     key={habitacion.numero}
                     className="border-gray-200 hover:shadow-md transition-shadow cursor-pointer"

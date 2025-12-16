@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { Receipt, Search, Printer } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -8,21 +8,143 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DashboardLayout } from "@/components/dashboard-layout"
+import { apiFetch } from "@/lib/api/fetch"
+import { toast } from "@/components/ui/use-toast"
+
+type ApiPasajero = {
+  id?: number
+  nombre?: string
+  apellido?: string
+  nroDocumento?: string
+}
+
+type ApiHabitacion = {
+  id?: number
+  numero?: string
+  tipoHabitacion?: {
+    nombre?: string
+    costoPorNoche?: number | string
+  }
+}
+
+type ApiResponsableReserva = {
+  id?: number
+  nombre?: string
+  apellido?: string
+  nroDocumento?: string
+}
+
+type ApiReserva = {
+  id?: number
+  fechaIngreso?: string | number
+  fechaEgreso?: string | number
+  habitacion?: ApiHabitacion
+  pasajeros?: ApiPasajero[]
+  responsableReserva?: ApiResponsableReserva
+}
+
+type Concepto = {
+  descripcion: string
+  cantidad: number
+  precio: number
+  total: number
+}
+
+function formatDate(value: unknown) {
+  if (!value) return "-"
+  const d = new Date(value as any)
+  if (Number.isNaN(d.getTime())) return "-"
+  return d.toISOString().slice(0, 10)
+}
+
+function diffNoches(desde?: string | number, hasta?: string | number) {
+  if (!desde || !hasta) return 0
+  const d1 = new Date(desde as any)
+  const d2 = new Date(hasta as any)
+  if (Number.isNaN(d1.getTime()) || Number.isNaN(d2.getTime())) return 0
+  const msPorDia = 1000 * 60 * 60 * 24
+  const diff = Math.round((d2.getTime() - d1.getTime()) / msPorDia)
+  return Math.max(diff, 0)
+}
+
+function parsePrecio(value?: number | string) {
+  if (typeof value === "number") return value
+  if (typeof value === "string") {
+    const parsed = parseFloat(value)
+    return Number.isFinite(parsed) ? parsed : 0
+  }
+  return 0
+}
 
 export default function Facturar() {
   const [dni, setDni] = useState("")
-  const [mostrarFactura, setMostrarFactura] = useState(false)
+  const [reservas, setReservas] = useState<ApiReserva[]>([])
+  const [cargando, setCargando] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const conceptos = [
-    { descripcion: "Habitación 201 - Doble (3 noches)", cantidad: 3, precio: 85, total: 255 },
-    { descripcion: "Servicio de habitaciones", cantidad: 2, precio: 15, total: 30 },
-    { descripcion: "Minibar", cantidad: 1, precio: 25, total: 25 },
-    { descripcion: "Parking", cantidad: 3, precio: 10, total: 30 },
-  ]
+  const reservaSeleccionada = reservas[0]
 
-  const subtotal = conceptos.reduce((acc, c) => acc + c.total, 0)
-  const iva = subtotal * 0.21
-  const total = subtotal + iva
+  const conceptos: Concepto[] = useMemo(() => {
+    if (!reservaSeleccionada) return []
+    const noches = diffNoches(reservaSeleccionada.fechaIngreso, reservaSeleccionada.fechaEgreso)
+    const precioNoche = parsePrecio(reservaSeleccionada.habitacion?.tipoHabitacion?.costoPorNoche)
+    const desc = `Habitación ${reservaSeleccionada.habitacion?.numero ?? "-"} - ${reservaSeleccionada.habitacion?.tipoHabitacion?.nombre ?? "-"
+      } (${noches} noche${noches === 1 ? "" : "s"})`
+    const totalLinea = noches * precioNoche
+    return [
+      {
+        descripcion: desc,
+        cantidad: noches || 1,
+        precio: precioNoche,
+        total: totalLinea || precioNoche,
+      },
+    ]
+  }, [reservaSeleccionada])
+
+  const subtotal = useMemo(() => conceptos.reduce((acc, c) => acc + c.total, 0), [conceptos])
+  const iva = useMemo(() => subtotal * 0.21, [subtotal])
+  const total = useMemo(() => subtotal + iva, [subtotal, iva])
+
+  const handleBuscar = async () => {
+    const dniTrim = dni.trim()
+    if (!dniTrim) {
+      toast({
+        title: "DNI requerido",
+        description: "Ingresá el DNI del huésped para buscar su reserva.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      setCargando(true)
+      setError(null)
+      const data = await apiFetch<ApiReserva[]>(`/reservas/buscar-por-dni?dni=${encodeURIComponent(dniTrim)}`, {
+        method: "GET",
+      })
+      if (!data || data.length === 0) {
+        setReservas([])
+        toast({
+          title: "Sin resultados",
+          description: "No se encontraron reservas para ese DNI.",
+          variant: "destructive",
+        })
+        return
+      }
+      setReservas(data)
+    } catch (err) {
+      console.error("Error al buscar reservas por DNI:", err)
+      const msg = err instanceof Error ? err.message : "Error al buscar reservas"
+      setError(msg)
+      toast({
+        title: "Error",
+        description: msg,
+        variant: "destructive",
+      })
+    } finally {
+      setCargando(false)
+    }
+  }
 
   return (
     <DashboardLayout>
@@ -48,14 +170,16 @@ export default function Facturar() {
                   />
                 </div>
               </div>
-              <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => setMostrarFactura(true)}>
-                Buscar
+              <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleBuscar} disabled={cargando}>
+                {cargando ? "Buscando..." : "Buscar"}
               </Button>
             </div>
           </CardContent>
         </Card>
 
-        {mostrarFactura && (
+        {error && <div className="text-red-600 mb-4">{error}</div>}
+
+        {reservaSeleccionada && (
           <Card className="border-gray-200">
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -64,7 +188,22 @@ export default function Facturar() {
                     <Receipt className="w-5 h-5 text-blue-600" />
                     Factura
                   </CardTitle>
-                  <CardDescription>Huésped: Carlos López - DNI: 87654321B</CardDescription>
+                  <CardDescription>
+                    Huésped:{" "}
+                    {reservaSeleccionada.responsableReserva?.nombre ??
+                      reservaSeleccionada.pasajeros?.[0]?.nombre ??
+                      "-"}{" "}
+                    {reservaSeleccionada.responsableReserva?.apellido ??
+                      reservaSeleccionada.pasajeros?.[0]?.apellido ??
+                      "-"}{" "}
+                    - DNI:{" "}
+                    {reservaSeleccionada.responsableReserva?.nroDocumento ??
+                      reservaSeleccionada.pasajeros?.[0]?.nroDocumento ??
+                      "-"}
+                  </CardDescription>
+                  <p className="text-sm text-gray-600">
+                    Estadia: {formatDate(reservaSeleccionada.fechaIngreso)} a {formatDate(reservaSeleccionada.fechaEgreso)}
+                  </p>
                 </div>
                 <Button variant="outline" size="sm">
                   <Printer className="w-4 h-4 mr-2" />
@@ -87,8 +226,8 @@ export default function Facturar() {
                     <TableRow key={index}>
                       <TableCell>{concepto.descripcion}</TableCell>
                       <TableCell className="text-center">{concepto.cantidad}</TableCell>
-                      <TableCell className="text-right">{concepto.precio.toFixed(2)} €</TableCell>
-                      <TableCell className="text-right">{concepto.total.toFixed(2)} €</TableCell>
+                      <TableCell className="text-right">${concepto.precio.toFixed(2)}</TableCell>
+                      <TableCell className="text-right">${concepto.total.toFixed(2)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -97,15 +236,15 @@ export default function Facturar() {
               <div className="mt-6 border-t pt-4 space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Subtotal</span>
-                  <span>{subtotal.toFixed(2)} €</span>
+                  <span>${subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">IVA (21%)</span>
-                  <span>{iva.toFixed(2)} €</span>
+                  <span>${iva.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between font-bold text-lg pt-2 border-t">
                   <span>Total</span>
-                  <span>{total.toFixed(2)} €</span>
+                  <span>${total.toFixed(2)}</span>
                 </div>
               </div>
 

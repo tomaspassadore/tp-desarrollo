@@ -1,14 +1,23 @@
 package com.reservas.hotel.api_gestion_hotelera.controller;
 
-import com.reservas.hotel.api_gestion_hotelera.entities.Factura;
-import com.reservas.hotel.api_gestion_hotelera.entities.Reserva; // <-- USADO
-import com.reservas.hotel.api_gestion_hotelera.service.ReservaService;
+import java.util.Optional;
+import java.util.Set; // <-- USADO
+
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;      // <-- USADO
-import org.springframework.http.ResponseEntity;  // <-- USADO
-import org.springframework.web.bind.annotation.*;
-import java.util.Set;                          // <-- USADO
-import java.util.Optional;                     // <-- USADO
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;      // <-- USADO
+import org.springframework.web.bind.annotation.DeleteMapping;  // <-- USADO
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;                          // <-- USADO
+import org.springframework.web.bind.annotation.PutMapping;                     // <-- USADO
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.reservas.hotel.api_gestion_hotelera.entities.Factura;
+import com.reservas.hotel.api_gestion_hotelera.entities.Reserva;
+import com.reservas.hotel.api_gestion_hotelera.service.ReservaService;
 
 // @RestController es una versión especializada de @Controller que incluye @ResponseBody [2, 3]
 @RestController
@@ -41,7 +50,7 @@ public class ReservaController {
     }
     
     // ==========================================================
-    // 2. GET: CONSULTAR RECURSOS (CU05: Mostrar disponibilidad) [5]
+    // 2. GET: CONSULTAR RECURSOS (CU05: Mostrar disponibilidad)
     // ==========================================================
 
     // Endpoint 1 de GET: Obtener todas las reservas (Colección)

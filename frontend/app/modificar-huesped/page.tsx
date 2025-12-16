@@ -9,30 +9,152 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { DashboardLayout } from "@/components/dashboard-layout"
+import { actualizarHuesped, buscarHuesped, Huesped } from "@/lib/api/huespedes"
+import { toast } from "@/components/ui/use-toast"
 
 export default function ModificarHuesped() {
   const [dni, setDni] = useState("")
   const [huespedEncontrado, setHuespedEncontrado] = useState(false)
+  const [huesped, setHuesped] = useState<Huesped | null>(null)
+  const [cargando, setCargando] = useState(false)
+  const [guardando, setGuardando] = useState(false)
+  const [okMsg, setOkMsg] = useState<string | null>(null)
   const [formData, setFormData] = useState({
-    nombre: "María",
-    apellidos: "García López",
-    dni: "12345678A",
-    telefono: "612345678",
-    email: "maria@email.com",
-    direccion: "Calle Mayor 123",
-    ciudad: "Madrid",
-    codigoPostal: "28001",
+    nombre: "",
+    apellidos: "",
+    dni: "",
+    telefono: "",
+    email: "",
+    cuit: "",
+    fechaDeNacimiento: "",
+    nacionalidad: "",
+    ocupacion: "",
+    direccion: "",
+    numero: "",
+    departamento: "",
+    piso: "",
+    ciudad: "",
+    provincia: "",
+    pais: "",
+    codigoPostal: "",
   })
 
-  const handleBuscar = () => {
-    if (dni) {
+  const handleBuscar = async () => {
+    const dniTrim = dni.trim()
+    if (!dniTrim) {
+      toast({
+        title: "DNI requerido",
+        description: "Ingresá el DNI del huésped para buscarlo.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      setCargando(true)
+      const encontrados = await buscarHuesped({ criterio: "dni", valor: dniTrim })
+
+      if (encontrados.length === 0) {
+        setHuesped(null)
+        setHuespedEncontrado(false)
+        toast({
+          title: "Sin resultados",
+          description: "No se encontró ningún huésped con ese DNI.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      const h = encontrados[0]
+      setHuesped(h)
       setHuespedEncontrado(true)
+      setFormData({
+        nombre: h.nombre ?? "",
+        apellidos: h.apellido ?? "",
+        dni: h.nroDocumento ?? "",
+        telefono: h.telefono ?? "",
+        email: h.email ?? "",
+        cuit: h.cuit ?? "",
+        fechaDeNacimiento: h.fechaDeNacimiento ?? "",
+        nacionalidad: h.nacionalidad ?? "",
+        ocupacion: h.ocupacion ?? "",
+        direccion: h.direccion?.calle ?? "",
+        numero: h.direccion?.numero ?? "",
+        departamento: h.direccion?.departamento ?? "",
+        piso: h.direccion?.piso ?? "",
+        ciudad: h.direccion?.localidad ?? "",
+        provincia: h.direccion?.provincia ?? "",
+        pais: h.direccion?.pais ?? "",
+        codigoPostal: h.direccion?.codigoPostal ?? "",
+      })
+    } catch (err) {
+      console.error("Error al buscar huésped:", err)
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Error al buscar el huésped",
+        variant: "destructive",
+      })
+      setHuesped(null)
+      setHuespedEncontrado(false)
+    } finally {
+      setCargando(false)
     }
   }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    console.log("Huésped modificado:", formData)
+      ; (async () => {
+        if (!huesped?.id) {
+          toast({
+            title: "Huésped no cargado",
+            description: "Primero buscá un huésped por DNI.",
+            variant: "destructive",
+          })
+          return
+        }
+
+        try {
+          setGuardando(true)
+          setOkMsg(null)
+
+          const payload: Huesped = {
+            ...huesped,
+            nombre: formData.nombre,
+            apellido: formData.apellidos,
+            nroDocumento: formData.dni,
+            telefono: formData.telefono,
+            email: formData.email || undefined,
+            cuit: formData.cuit || undefined,
+            fechaDeNacimiento: formData.fechaDeNacimiento,
+            nacionalidad: formData.nacionalidad,
+            ocupacion: formData.ocupacion,
+            direccion: {
+              ...huesped.direccion,
+              calle: formData.direccion,
+              numero: formData.numero,
+              departamento: formData.departamento,
+              piso: formData.piso,
+              localidad: formData.ciudad,
+              provincia: formData.provincia,
+              pais: formData.pais,
+              codigoPostal: formData.codigoPostal,
+            },
+          }
+
+          const actualizado = await actualizarHuesped(huesped.id, payload)
+          setHuesped(actualizado)
+          setOkMsg("Huésped modificado correctamente.")
+        } catch (err) {
+          console.error("Error al actualizar huésped:", err)
+          toast({
+            title: "No se pudo guardar",
+            description: err instanceof Error ? err.message : "Error al guardar cambios",
+            variant: "destructive",
+          })
+        } finally {
+          setGuardando(false)
+        }
+      })()
   }
 
   return (
@@ -60,7 +182,7 @@ export default function ModificarHuesped() {
                 </div>
               </div>
               <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleBuscar}>
-                Buscar
+                {cargando ? "Buscando..." : "Buscar"}
               </Button>
             </div>
           </CardContent>
@@ -125,24 +247,114 @@ export default function ModificarHuesped() {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="direccion">Dirección</Label>
-                  <Input
-                    id="direccion"
-                    value={formData.direccion}
-                    onChange={(e) => setFormData({ ...formData, direccion: e.target.value })}
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="cuit">CUIT</Label>
+                    <Input
+                      id="cuit"
+                      value={formData.cuit}
+                      onChange={(e) => setFormData({ ...formData, cuit: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="fechaDeNacimiento">Fecha de Nacimiento</Label>
+                    <Input
+                      id="fechaDeNacimiento"
+                      type="date"
+                      value={formData.fechaDeNacimiento}
+                      onChange={(e) => setFormData({ ...formData, fechaDeNacimiento: e.target.value })}
+                    />
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="ciudad">Ciudad</Label>
+                    <Label htmlFor="nacionalidad">Nacionalidad</Label>
                     <Input
-                      id="ciudad"
-                      value={formData.ciudad}
-                      onChange={(e) => setFormData({ ...formData, ciudad: e.target.value })}
+                      id="nacionalidad"
+                      value={formData.nacionalidad}
+                      onChange={(e) => setFormData({ ...formData, nacionalidad: e.target.value })}
                     />
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="ocupacion">Ocupación</Label>
+                    <Input
+                      id="ocupacion"
+                      value={formData.ocupacion}
+                      onChange={(e) => setFormData({ ...formData, ocupacion: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-4 border-t pt-4">
+                  <h3 className="text-sm font-semibold text-gray-700">Dirección</h3>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="direccion">Calle</Label>
+                    <Input
+                      id="direccion"
+                      value={formData.direccion}
+                      onChange={(e) => setFormData({ ...formData, direccion: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="numero">Número</Label>
+                      <Input
+                        id="numero"
+                        value={formData.numero}
+                        onChange={(e) => setFormData({ ...formData, numero: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="departamento">Departamento</Label>
+                      <Input
+                        id="departamento"
+                        value={formData.departamento}
+                        onChange={(e) => setFormData({ ...formData, departamento: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="piso">Piso</Label>
+                      <Input
+                        id="piso"
+                        value={formData.piso}
+                        onChange={(e) => setFormData({ ...formData, piso: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="ciudad">Localidad</Label>
+                      <Input
+                        id="ciudad"
+                        value={formData.ciudad}
+                        onChange={(e) => setFormData({ ...formData, ciudad: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="provincia">Provincia</Label>
+                      <Input
+                        id="provincia"
+                        value={formData.provincia}
+                        onChange={(e) => setFormData({ ...formData, provincia: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="pais">País</Label>
+                      <Input
+                        id="pais"
+                        value={formData.pais}
+                        onChange={(e) => setFormData({ ...formData, pais: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="codigoPostal">Código Postal</Label>
                     <Input
@@ -153,7 +365,9 @@ export default function ModificarHuesped() {
                   </div>
                 </div>
 
-                <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700">
+                {okMsg && <div className="text-sm text-green-700">{okMsg}</div>}
+
+                <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={guardando}>
                   Guardar Cambios
                 </Button>
               </form>

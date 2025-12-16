@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { CalendarX, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -8,49 +8,139 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { DashboardLayout } from "@/components/dashboard-layout"
+import { apiFetch } from "@/lib/api/fetch"
+import { toast } from "@/components/ui/use-toast"
 
-const reservas = [
-  {
-    id: "R001",
-    huesped: "María García",
-    habitacion: "101",
-    entrada: "2025-06-25",
-    salida: "2025-06-28",
-    estado: "confirmada",
-  },
-  {
-    id: "R002",
-    huesped: "Carlos López",
-    habitacion: "205",
-    entrada: "2025-06-26",
-    salida: "2025-06-30",
-    estado: "confirmada",
-  },
-  {
-    id: "R003",
-    huesped: "Ana Martínez",
-    habitacion: "302",
-    entrada: "2025-06-27",
-    salida: "2025-06-29",
-    estado: "pendiente",
-  },
-  {
-    id: "R004",
-    huesped: "Pedro Sánchez",
-    habitacion: "108",
-    entrada: "2025-06-28",
-    salida: "2025-07-02",
-    estado: "confirmada",
-  },
-]
+type ApiPasajero = {
+  id?: number
+  nombre?: string
+  apellido?: string
+  nroDocumento?: string
+}
+
+type ApiHabitacion = {
+  id?: number
+  numero?: string
+}
+
+type ApiResponsableReserva = {
+  id?: number
+  nombre?: string
+  apellido?: string
+  telefono?: string
+}
+
+type ApiReserva = {
+  id: number
+  fechaIngreso?: string | number
+  fechaEgreso?: string | number
+  habitacion?: ApiHabitacion
+  pasajeros?: ApiPasajero[]
+  responsableReserva?: ApiResponsableReserva
+}
+
+type ReservaDisplay = {
+  id: string
+  huesped: string
+  habitacion: string
+  entrada: string
+  salida: string
+}
+
+function formatDate(value: unknown) {
+  if (!value) return "-"
+  const d = new Date(value as any)
+  if (Number.isNaN(d.getTime())) return "-"
+  return d.toISOString().slice(0, 10)
+}
+
+function getNombreCompleto(nombre?: string, apellido?: string) {
+  const n = (nombre ?? "").trim()
+  const a = (apellido ?? "").trim()
+  const full = `${n} ${a}`.trim()
+  return full.length ? full : "-"
+}
 
 export default function CancelarReserva() {
+  const [reservas, setReservas] = useState<ReservaDisplay[]>([])
+  const [cargando, setCargando] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [busqueda, setBusqueda] = useState("")
+  const [cancelandoId, setCancelandoId] = useState<string | null>(null)
 
-  const reservasFiltradas = reservas.filter(
-    (r) =>
-      r.huesped.toLowerCase().includes(busqueda.toLowerCase()) || r.id.toLowerCase().includes(busqueda.toLowerCase()),
-  )
+  const buscarReservasPorNombre = async (nombre: string) => {
+    try {
+      setCargando(true)
+      setError(null)
+      const nombreTrim = nombre.trim()
+      if (!nombreTrim) {
+        setReservas([])
+        setCargando(false)
+        return
+      }
+
+      const data = await apiFetch<ApiReserva[]>(`/reservas/buscar?nombre=${encodeURIComponent(nombreTrim)}`, {
+        method: "GET",
+      })
+
+      const mapeadas: ReservaDisplay[] = (data ?? []).map((r) => {
+        const responsable = r.responsableReserva
+        const pasajero = (r.pasajeros ?? [])[0]
+        const huesped = responsable
+          ? getNombreCompleto(responsable.nombre, responsable.apellido)
+          : getNombreCompleto(pasajero?.nombre, pasajero?.apellido)
+
+        return {
+          id: String(r.id),
+          huesped,
+          habitacion: r.habitacion?.numero ?? "-",
+          entrada: formatDate(r.fechaIngreso),
+          salida: formatDate(r.fechaEgreso),
+        }
+      })
+
+      setReservas(mapeadas)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error al cargar las reservas")
+      console.error("Error al cargar reservas:", err)
+    } finally {
+      setCargando(false)
+    }
+  }
+
+  const reservasFiltradas = useMemo(() => reservas, [reservas])
+
+  const cancelarReserva = async (id: string) => {
+    const idTrim = id.trim()
+    if (!idTrim) {
+      toast({
+        title: "ID requerido",
+        description: "Ingresá un ID de reserva para cancelar.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      setCancelandoId(idTrim)
+      await apiFetch<void>(`/reservas/${encodeURIComponent(idTrim)}`, { method: "DELETE" })
+      toast({
+        title: "Reserva cancelada",
+        description: `La reserva ${idTrim} fue cancelada correctamente.`,
+      })
+      await buscarReservasPorNombre(busqueda)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Error al cancelar la reserva"
+      toast({
+        title: "No se pudo cancelar",
+        description: message,
+        variant: "destructive",
+      })
+      console.error("Error al cancelar reserva:", err)
+    } finally {
+      setCancelandoId(null)
+    }
+  }
 
   return (
     <DashboardLayout>
@@ -62,16 +152,23 @@ export default function CancelarReserva() {
 
         <Card className="border-gray-200 mb-6">
           <CardContent className="p-6">
-            <div className="flex gap-4">
+            <div className="flex gap-4 items-center">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <Input
-                  placeholder="Buscar por ID de reserva o nombre del huésped..."
+                  placeholder="Buscar por nombre del huésped..."
                   className="pl-10"
                   value={busqueda}
                   onChange={(e) => setBusqueda(e.target.value)}
                 />
               </div>
+              <Button
+                className="bg-blue-600 hover:bg-blue-700"
+                onClick={() => buscarReservasPorNombre(busqueda)}
+                disabled={cargando || cancelandoId !== null}
+              >
+                Buscar
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -85,46 +182,49 @@ export default function CancelarReserva() {
             <CardDescription>{reservasFiltradas.length} reserva(s) encontrada(s)</CardDescription>
           </CardHeader>
           <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-gray-50">
-                  <TableHead className="font-medium text-gray-700">ID</TableHead>
-                  <TableHead className="font-medium text-gray-700">Huésped</TableHead>
-                  <TableHead className="font-medium text-gray-700">Habitación</TableHead>
-                  <TableHead className="font-medium text-gray-700">Entrada</TableHead>
-                  <TableHead className="font-medium text-gray-700">Salida</TableHead>
-                  <TableHead className="font-medium text-gray-700">Estado</TableHead>
-                  <TableHead className="font-medium text-gray-700">Acción</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {reservasFiltradas.map((reserva) => (
-                  <TableRow key={reserva.id} className="hover:bg-gray-50">
-                    <TableCell className="font-mono">{reserva.id}</TableCell>
-                    <TableCell className="font-medium">{reserva.huesped}</TableCell>
-                    <TableCell>{reserva.habitacion}</TableCell>
-                    <TableCell>{reserva.entrada}</TableCell>
-                    <TableCell>{reserva.salida}</TableCell>
-                    <TableCell>
-                      <Badge
-                        className={
-                          reserva.estado === "confirmada"
-                            ? "bg-green-100 text-green-700"
-                            : "bg-yellow-100 text-yellow-700"
-                        }
-                      >
-                        {reserva.estado}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Button variant="destructive" size="sm">
-                        Cancelar
-                      </Button>
-                    </TableCell>
+            {cargando ? (
+              <div className="p-8 text-center text-gray-600">Cargando reservas...</div>
+            ) : error ? (
+              <div className="p-8 text-center text-red-600">Error: {error}</div>
+            ) : !busqueda.trim() ? (
+              <div className="p-8 text-center text-gray-600">Ingresá un nombre y presioná Buscar</div>
+            ) : reservasFiltradas.length === 0 ? (
+              <div className="p-8 text-center text-gray-600">No se encontraron reservas</div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-gray-50">
+                    <TableHead className="font-medium text-gray-700">ID</TableHead>
+                    <TableHead className="font-medium text-gray-700">Huésped</TableHead>
+                    <TableHead className="font-medium text-gray-700">Habitación</TableHead>
+                    <TableHead className="font-medium text-gray-700">Entrada</TableHead>
+                    <TableHead className="font-medium text-gray-700">Salida</TableHead>
+                    <TableHead className="font-medium text-gray-700">Acción</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {reservasFiltradas.map((reserva) => (
+                    <TableRow key={reserva.id} className="hover:bg-gray-50">
+                      <TableCell className="font-mono">{reserva.id}</TableCell>
+                      <TableCell className="font-medium">{reserva.huesped}</TableCell>
+                      <TableCell>{reserva.habitacion}</TableCell>
+                      <TableCell>{reserva.entrada}</TableCell>
+                      <TableCell>{reserva.salida}</TableCell>
+                      <TableCell>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => cancelarReserva(reserva.id)}
+                          disabled={cancelandoId !== null}
+                        >
+                          {cancelandoId === reserva.id ? "Cancelando..." : "Cancelar"}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
       </div>
