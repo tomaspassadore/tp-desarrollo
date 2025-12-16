@@ -1,5 +1,6 @@
 package com.reservas.hotel.api_gestion_hotelera.service.impl;
 
+import com.reservas.hotel.api_gestion_hotelera.exception.ConflictoReservaException;
 import com.reservas.hotel.api_gestion_hotelera.entities.Reserva;
 import com.reservas.hotel.api_gestion_hotelera.entities.Habitacion;
 import com.reservas.hotel.api_gestion_hotelera.entities.Factura;
@@ -58,7 +59,7 @@ public class ReservaServiceImpl implements ReservaService {
                 .orElseThrow(() -> new RuntimeException("La habitación no existe"));
 
         if (habitacion.getEstado() != EstadoHabitacion.LIBRE) {
-            throw new RuntimeException("La habitación no está disponible");
+            throw new ConflictoReservaException("La habitación no está disponible");
         }
 
         //VALIDACIÓN DE SOLAPAMIENTO
@@ -69,7 +70,7 @@ public class ReservaServiceImpl implements ReservaService {
         );
 
         if (!reservasSolapadas.isEmpty()) {
-            throw new RuntimeException("La habitación ya está reservada en ese rango de fechas");
+            throw new ConflictoReservaException("La habitación ya está reservada en ese rango de fechas");
         }
 
         habitacion.setEstado(EstadoHabitacion.RESERVADA);
