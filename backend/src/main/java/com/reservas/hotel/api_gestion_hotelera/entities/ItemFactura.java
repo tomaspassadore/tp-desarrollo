@@ -13,20 +13,20 @@ public class ItemFactura {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id; // Clave primaria interna
+    private Long id;
 
-    // Atributos base
-    @Column(unique = true)
-    private String IDItemFactura; // ID del ítem [3]
-    
-    private Integer cantidad; // Cantidad del servicio/producto [3]
     private String descripcion;
+
+    private Integer cantidad;
+
     private Double precioUnitario;
-    private Integer cantidadPagada; 
-    
-    // Relación: Muchos ítems de factura pertenecen a una sola Factura
-    // Mapeo inverso de la relación OneToMany definida en Factura
-    @ManyToOne 
+
+    private Double subtotal;
+
+    @ManyToOne
     @JoinColumn(name = "factura_id", nullable = false)
-    private Factura factura; 
+    private Factura factura;
+
+    
 }
+
