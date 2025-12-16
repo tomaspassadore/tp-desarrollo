@@ -106,12 +106,28 @@ public class ReservaServiceImpl implements ReservaService {
 
     @Override
     @Transactional
-    public Reserva realizarCheckIn(Reserva reserva) {
-        Habitacion habitacion = reserva.getHabitacion();
+    public Reserva realizarCheckIn(Reserva reservaRequest) {
+
+        Reserva reserva = reservaRepository.findById(reservaRequest.getId())
+                .orElseThrow(() -> new RuntimeException("Reserva no encontrada"));
+        Habitacion habitacion = habitacionService.buscarPorId(
+                reserva.getHabitacion().getId()
+        ).orElseThrow(() -> new RuntimeException("Habitación no encontrada"));
+
+        if (habitacion.getEstado() != EstadoHabitacion.RESERVADA) {
+            throw new ConflictoReservaException(
+            "No se puede hacer check-in de una habitación que no está reservada"
+            );
+        }
+        
         habitacion.setEstado(EstadoHabitacion.OCUPADA);
         habitacionService.guardarHabitacion(habitacion);
-        return reservaRepository.save(reserva);
+
+        reserva.setHabitacion(habitacion);
+
+        return reserva;
     }
+
 
     @Override
     @Transactional
