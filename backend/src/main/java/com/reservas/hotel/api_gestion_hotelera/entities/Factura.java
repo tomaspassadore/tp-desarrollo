@@ -1,13 +1,15 @@
 package com.reservas.hotel.api_gestion_hotelera.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.reservas.hotel.api_gestion_hotelera.entities.enums.TipoFactura;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.ArrayList;
 import java.util.Date;
-import java.util.Set;
+import java.util.List;
 
 @Entity
 @Data
@@ -29,11 +31,13 @@ public class Factura {
     // Relación con la Reserva (0..1) [5]
     @OneToOne
     @JoinColumn(name = "reserva_id", unique = true)
+    @JsonIgnoreProperties({"habitacion","pasajeros","responsableReserva"})
     private Reserva reservaAsociada;
+
     
     // Relación con los items/servicios facturados (ItemFactura) [7]
-    @OneToMany(mappedBy = "factura")
-    private Set<ItemFactura> items; 
+    @OneToMany(mappedBy = "factura", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ItemFactura> items = new ArrayList<>();
 
     // ... otros atributos y relaciones
 

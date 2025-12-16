@@ -2,6 +2,7 @@ package com.reservas.hotel.api_gestion_hotelera.service.impl;
 
 // Importaciones para las Entidades
 import com.reservas.hotel.api_gestion_hotelera.entities.Factura;
+import com.reservas.hotel.api_gestion_hotelera.entities.ItemFactura;
 import com.reservas.hotel.api_gestion_hotelera.entities.NotaDeCredito;
 import com.reservas.hotel.api_gestion_hotelera.entities.Pago; 
 import com.reservas.hotel.api_gestion_hotelera.entities.Reserva;
@@ -17,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service; 
 import org.springframework.transaction.annotation.Transactional; // Para manejar la lógica de negocio como una unidad atómica
 
+import java.math.BigDecimal;
 import java.util.Date;
 import java.util.Optional;
 import java.util.Set;
@@ -44,34 +46,41 @@ public class ContabilidadServiceImpl implements ContabilidadService {
     @Transactional
     public Factura generarFactura(Reserva reserva) {
 
-        if (reserva == null) {
-            throw new IllegalArgumentException("No se puede generar factura sin una reserva");
-        }
-
         Factura factura = new Factura();
         factura.setReservaAsociada(reserva);
         factura.setFechaDeEmision(new Date());
         factura.setTipo(TipoFactura.B);
 
         long noches = calcularNoches(
-                reserva.getFechaIngreso(),
-                reserva.getFechaEgreso()
+            reserva.getFechaIngreso(),
+            reserva.getFechaEgreso()
         );
 
-        double precioPorNoche = reserva.getHabitacion()
+
+        // 2. Obtener precio por noche (BigDecimal)
+        BigDecimal precioNoche = reserva.getHabitacion()
                 .getTipoHabitacion()
-                .getCostoPorNoche()
-                .doubleValue();
+                .getCostoPorNoche();
 
-        double total = noches * precioPorNoche;
+        // 3. Calcular total (BigDecimal)
+        BigDecimal total = precioNoche.multiply(BigDecimal.valueOf(noches));
 
-        factura.setImporteTotal(total);
+        // 4. Guardar total en Factura (Double)
+        factura.setImporteTotal(total.doubleValue());
+        // 5. Crear ítem de factura
+        ItemFactura item = new ItemFactura();
+        item.setDescripcion("Alojamiento habitación " + reserva.getHabitacion().getNumero());
+        item.setCantidad((int) noches);
+        item.setPrecioUnitario(precioNoche.doubleValue());
+        item.setSubtotal(total.doubleValue());
+        item.setFactura(factura);
 
+        // 6. Asociar ítem a la factura
+        factura.getItems().add(item);
+
+        // 7. Guardar factura (cascade guarda el ítem)
         return facturaRepository.save(factura);
     }
-
-
-
 
     
     @Override // <--- Implementa ContabilidadService.buscarFacturaPorId(Long)
