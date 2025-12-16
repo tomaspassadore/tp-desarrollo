@@ -14,7 +14,6 @@ public class Direccion {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String nombre;
     private String calle;
     private String numero;
     private String departamento;

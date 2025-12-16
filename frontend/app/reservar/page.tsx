@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DashboardLayout } from "@/components/dashboard-layout"
+import { crearReserva } from "@/lib/api/reserva"
 
 export default function ReservarHabitacion() {
   const [formData, setFormData] = useState({
@@ -20,23 +21,61 @@ export default function ReservarHabitacion() {
     numPersonas: "",
   })
 
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
   // Obtener la fecha actual en formato YYYY-MM-DD
   const today = useMemo(() => {
     const date = new Date()
-    return date.toISOString().split('T')[0]
+    return date.toISOString().split("T")[0]
   }, [])
 
   // Calcular la fecha mínima para fecha de salida (día siguiente a fecha de entrada)
   const minFechaSalida = useMemo(() => {
     if (!formData.fechaEntrada) return today
 
-    const fechaEntrada = new Date(formData.fechaEntrada + 'T00:00:00')
+    const fechaEntrada = new Date(formData.fechaEntrada + "T00:00:00")
     fechaEntrada.setDate(fechaEntrada.getDate() + 1)
-    return fechaEntrada.toISOString().split('T')[0]
+    return fechaEntrada.toISOString().split("T")[0]
   }, [formData.fechaEntrada, today])
 
-  const handleSubmit = () => {
-    console.log("Reserva:", formData)
+  const handleSubmit: React.MouseEventHandler<HTMLButtonElement> = async (e) => {
+    e.preventDefault()
+
+    if (!formData.habitacion || !formData.fechaEntrada || !formData.fechaSalida || !formData.huesped) {
+      window.alert("Complete habitación, fecha de entrada, fecha de salida y DNI del huésped")
+      return
+    }
+
+    try {
+      setIsSubmitting(true)
+
+      const payload = {
+        fechaIngreso: formData.fechaEntrada,
+        fechaEgreso: formData.fechaSalida,
+        habitacion: {
+          numero: formData.habitacion,
+        },
+        dniPasajero: formData.huesped,
+      }
+
+      await crearReserva(payload)
+
+      window.alert("Reserva creada correctamente")
+
+      // Opcional: limpiar formulario
+      setFormData({
+        huesped: "",
+        habitacion: "",
+        fechaEntrada: "",
+        fechaSalida: "",
+        numPersonas: "",
+      })
+    } catch (error: any) {
+      const message = error?.message ?? "Ocurrió un error al crear la reserva"
+      window.alert(message)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -69,7 +108,10 @@ export default function ReservarHabitacion() {
 
               <div className="space-y-2">
                 <Label htmlFor="habitacion">Habitación</Label>
-                <Select onValueChange={(value) => setFormData({ ...formData, habitacion: value })}>
+                <Select
+                  value={formData.habitacion}
+                  onValueChange={(value) => setFormData({ ...formData, habitacion: value })}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccione una habitación" />
                   </SelectTrigger>
@@ -119,8 +161,12 @@ export default function ReservarHabitacion() {
                 />
               </div>
 
-              <Button onClick={handleSubmit} className="w-full bg-blue-600 hover:bg-blue-700">
-                Confirmar Reserva
+              <Button
+                onClick={handleSubmit}
+                className="w-full bg-blue-600 hover:bg-blue-700"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Creando reserva..." : "Confirmar Reserva"}
               </Button>
             </div>
           </CardContent>

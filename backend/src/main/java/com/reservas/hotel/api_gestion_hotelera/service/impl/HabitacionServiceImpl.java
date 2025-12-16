@@ -1,18 +1,18 @@
 package com.reservas.hotel.api_gestion_hotelera.service.impl;
 
-import com.reservas.hotel.api_gestion_hotelera.entities.Habitacion;
-import com.reservas.hotel.api_gestion_hotelera.entities.enums.EstadoHabitacion;
-import com.reservas.hotel.api_gestion_hotelera.repository.HabitacionRepository;
-import com.reservas.hotel.api_gestion_hotelera.service.HabitacionService;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.reservas.hotel.api_gestion_hotelera.entities.Habitacion;
+import com.reservas.hotel.api_gestion_hotelera.entities.enums.EstadoHabitacion;
+import com.reservas.hotel.api_gestion_hotelera.repository.HabitacionRepository;
+import com.reservas.hotel.api_gestion_hotelera.service.HabitacionService;
 
 @Service
 public class HabitacionServiceImpl implements HabitacionService {
@@ -20,9 +20,14 @@ public class HabitacionServiceImpl implements HabitacionService {
     @Autowired
     private HabitacionRepository habitacionRepository;
 
+    // @Override
+    // public Optional<Habitacion> buscarPorId(Long id) {
+    //     return habitacionRepository.findById(id);
+    // }
+
     @Override
-    public Optional<Habitacion> buscarPorId(Long id) {
-        return habitacionRepository.findById(id);
+    public Optional<Habitacion> buscarPorNumero(Integer numero) {
+        return habitacionRepository.findByNumero(numero);
     }
 
     @Override

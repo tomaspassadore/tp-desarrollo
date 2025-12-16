@@ -1,49 +1,50 @@
 package com.reservas.hotel.api_gestion_hotelera.entities;
 
-import jakarta.persistence.*; // Paquete estándar de JPA (o javax.persistence)
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
 import java.util.Date;
 import java.util.Set;
 
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
+import jakarta.persistence.ManyToOne;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
 @Entity
 @Data
+@Getter
 @NoArgsConstructor
 @AllArgsConstructor
 public class Reserva {
 
-    // Clave primaria e identificador (requerido por JPA) [2]
+    // Clave primaria e identificador (requerido por JPA)
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id; 
+    private Long id;
 
-    // Atributos base de la reserva [5]
+    // Atributos base de la reserva
     private Date fechaIngreso;
-    private Date fechaEgreso; 
+    private Date fechaEgreso;
 
-    // Relaciones (Mapeos básicos asumidos basados en el diagrama) [5]
-    
     // Una reserva pertenece a una habitación (Habitacion)
-    @ManyToOne 
+    @ManyToOne
     @JoinColumn(name = "habitacion_id", nullable = false)
-    private Habitacion habitacion; 
+    private Habitacion habitacion;
 
-    // Una reserva tiene uno o más pasajeros (Pasajero)
+    // Relación muchos-a-muchos con Pasajero
+    // Se crea una tabla intermedia reserva_pasajero con reserva_id y pasajero_id
     @ManyToMany
-    // Definimos cómo se mapea la tabla intermedia
-    @JoinTable(
-        name = "reserva_pasajero",
-        joinColumns = @JoinColumn(name = "reserva_id"),
-        inverseJoinColumns = @JoinColumn(name = "pasajero_id")
-    )
+    @JoinTable(name = "reserva_pasajero", joinColumns = @JoinColumn(name = "reserva_id"), inverseJoinColumns = @JoinColumn(name = "pasajero_id"))
     private Set<Pasajero> pasajeros;
 
-    // Relación con la persona que paga/hace la reserva (ResponsableReserva)
-    @OneToOne(cascade = CascadeType.ALL) 
-    @JoinColumn(name = "responsable_id", referencedColumnName = "id")
-    private ResponsableReserva responsableReserva; 
-
-    // ... aquí irían las relaciones con Pago, Factura (si no es 1-1 bidireccional), etc.
+    // Relación con el pasajero responsable de la reserva
+    @ManyToOne
+    @JoinColumn(name = "responsable_id", nullable = false)
+    private Pasajero responsable;
 }

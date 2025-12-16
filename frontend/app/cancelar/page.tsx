@@ -36,7 +36,8 @@ type ApiReserva = {
   fechaEgreso?: string | number
   habitacion?: ApiHabitacion
   pasajeros?: ApiPasajero[]
-  responsableReserva?: ApiResponsableReserva
+  responsable?: ApiPasajero
+  responsableReserva?: ApiResponsableReserva // Mantener por compatibilidad
 }
 
 type ReservaDisplay = {
@@ -66,6 +67,7 @@ export default function CancelarReserva() {
   const [cargando, setCargando] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [busqueda, setBusqueda] = useState("")
+  const [ultimaBusquedaEjecutada, setUltimaBusquedaEjecutada] = useState("")
   const [cancelandoId, setCancelandoId] = useState<string | null>(null)
 
   const buscarReservasPorNombre = async (nombre: string) => {
@@ -75,20 +77,29 @@ export default function CancelarReserva() {
       const nombreTrim = nombre.trim()
       if (!nombreTrim) {
         setReservas([])
+        setUltimaBusquedaEjecutada("")
         setCargando(false)
         return
       }
+
+      setUltimaBusquedaEjecutada(nombreTrim)
 
       const data = await apiFetch<ApiReserva[]>(`/reservas/buscar?nombre=${encodeURIComponent(nombreTrim)}`, {
         method: "GET",
       })
 
       const mapeadas: ReservaDisplay[] = (data ?? []).map((r) => {
-        const responsable = r.responsableReserva
-        const pasajero = (r.pasajeros ?? [])[0]
-        const huesped = responsable
-          ? getNombreCompleto(responsable.nombre, responsable.apellido)
-          : getNombreCompleto(pasajero?.nombre, pasajero?.apellido)
+        // Priorizar responsable (campo actual), luego responsableReserva (compatibilidad), luego primer pasajero
+        const responsable = r.responsable || r.responsableReserva
+        const pasajero = (r.pasajeros && r.pasajeros.length > 0) ? r.pasajeros[0] : null
+
+        // Obtener nombre del responsable o del primer pasajero
+        let huesped = "-"
+        if (responsable) {
+          huesped = getNombreCompleto(responsable.nombre, responsable.apellido)
+        } else if (pasajero) {
+          huesped = getNombreCompleto(pasajero.nombre, pasajero.apellido)
+        }
 
         return {
           id: String(r.id),
@@ -108,7 +119,18 @@ export default function CancelarReserva() {
     }
   }
 
-  const reservasFiltradas = useMemo(() => reservas, [reservas])
+  const busquedaNormalizada = busqueda.trim().toLowerCase()
+  const busquedaCoincide = useMemo(
+    () =>
+      busquedaNormalizada.length > 0 &&
+      busquedaNormalizada === ultimaBusquedaEjecutada.trim().toLowerCase(),
+    [busquedaNormalizada, ultimaBusquedaEjecutada]
+  )
+
+  const reservasFiltradas = useMemo(
+    () => (busquedaCoincide ? reservas : []),
+    [reservas, busquedaCoincide]
+  )
 
   const cancelarReserva = async (id: string) => {
     const idTrim = id.trim()
@@ -184,47 +206,53 @@ export default function CancelarReserva() {
           <CardContent className="p-0">
             {cargando ? (
               <div className="p-8 text-center text-gray-600">Cargando reservas...</div>
-            ) : error ? (
-              <div className="p-8 text-center text-red-600">Error: {error}</div>
-            ) : !busqueda.trim() ? (
-              <div className="p-8 text-center text-gray-600">Ingresá un nombre y presioná Buscar</div>
-            ) : reservasFiltradas.length === 0 ? (
-              <div className="p-8 text-center text-gray-600">No se encontraron reservas</div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-gray-50">
-                    <TableHead className="font-medium text-gray-700">ID</TableHead>
-                    <TableHead className="font-medium text-gray-700">Huésped</TableHead>
-                    <TableHead className="font-medium text-gray-700">Habitación</TableHead>
-                    <TableHead className="font-medium text-gray-700">Entrada</TableHead>
-                    <TableHead className="font-medium text-gray-700">Salida</TableHead>
-                    <TableHead className="font-medium text-gray-700">Acción</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {reservasFiltradas.map((reserva) => (
-                    <TableRow key={reserva.id} className="hover:bg-gray-50">
-                      <TableCell className="font-mono">{reserva.id}</TableCell>
-                      <TableCell className="font-medium">{reserva.huesped}</TableCell>
-                      <TableCell>{reserva.habitacion}</TableCell>
-                      <TableCell>{reserva.entrada}</TableCell>
-                      <TableCell>{reserva.salida}</TableCell>
-                      <TableCell>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => cancelarReserva(reserva.id)}
-                          disabled={cancelandoId !== null}
-                        >
-                          {cancelandoId === reserva.id ? "Cancelando..." : "Cancelar"}
-                        </Button>
-                      </TableCell>
+            )
+              // : error ? (
+              //   <div className="p-8 text-center text-red-600">Error: {error}</div>
+              // ) : !busqueda.trim() ? (
+              //   <div className="p-8 text-center text-gray-600">Ingresá un nombre y presioná Buscar</div>
+              // ) : !busquedaCoincide ? (
+              //   <div className="p-8 text-center text-gray-600">
+              //     Terminá de escribir el nombre y presioná Buscar para ver resultados
+              //   </div>
+              // ) : reservasFiltradas.length === 0 ? (
+              //   <div className="p-8 text-center text-gray-600">No se encontraron reservas</div>
+              // ) 
+              : (
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-gray-50">
+                      <TableHead className="font-medium text-gray-700">ID</TableHead>
+                      <TableHead className="font-medium text-gray-700">Huésped</TableHead>
+                      <TableHead className="font-medium text-gray-700">Habitación</TableHead>
+                      <TableHead className="font-medium text-gray-700">Entrada</TableHead>
+                      <TableHead className="font-medium text-gray-700">Salida</TableHead>
+                      <TableHead className="font-medium text-gray-700">Acción</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
+                  </TableHeader>
+                  <TableBody>
+                    {reservasFiltradas.map((reserva) => (
+                      <TableRow key={reserva.id} className="hover:bg-gray-50">
+                        <TableCell className="font-mono">{reserva.id}</TableCell>
+                        <TableCell className="font-medium">{reserva.huesped}</TableCell>
+                        <TableCell>{reserva.habitacion}</TableCell>
+                        <TableCell>{reserva.entrada}</TableCell>
+                        <TableCell>{reserva.salida}</TableCell>
+                        <TableCell>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => cancelarReserva(reserva.id)}
+                            disabled={cancelandoId !== null}
+                          >
+                            {cancelandoId === reserva.id ? "Cancelando..." : "Cancelar"}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
           </CardContent>
         </Card>
       </div>

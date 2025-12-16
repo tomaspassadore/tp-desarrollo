@@ -1,20 +1,25 @@
 package com.reservas.hotel.api_gestion_hotelera.entities;
 
+import java.util.Set;
+
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.reservas.hotel.api_gestion_hotelera.entities.enums.EstadoPasajero;
 
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import lombok.Data;
+import lombok.Getter;
 
 @Data
+@Getter
 @Entity
 public class Pasajero {
     
@@ -45,5 +50,10 @@ public class Pasajero {
     
     @Enumerated(EnumType.STRING)
     private EstadoPasajero estado;
+
+    // Relación muchos-a-muchos con Reserva (lado inverso)
+    // La tabla intermedia se define en Reserva con @JoinTable
+    @ManyToMany(mappedBy = "pasajeros")
+    private Set<Reserva> reservas;
 
 }

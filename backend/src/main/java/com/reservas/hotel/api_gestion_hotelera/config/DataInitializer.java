@@ -82,11 +82,9 @@ public class DataInitializer implements CommandLineRunner {
     private void crearHabitaciones(TipoHabitacion tipo, int numeroInicial, int cantidad) {
         for (int i = 0; i < cantidad; i++) {
             int numeroHabitacion = numeroInicial + i;
-            String idHabitacion = tipo.getNombre().substring(0, 3).toUpperCase() + "-" + numeroHabitacion;
             
             Habitacion habitacion = new Habitacion(
-                String.valueOf(numeroHabitacion),
-                idHabitacion,
+                numeroHabitacion,
                 EstadoHabitacion.LIBRE,
                 tipo
             );

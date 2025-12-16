@@ -16,12 +16,12 @@ public interface ReservaRepository extends CrudRepository<Reserva, Long> {
 
     @Query("""
     SELECT r FROM Reserva r
-    WHERE r.habitacion.id = :idHabitacion
+    WHERE r.habitacion.numero = :numeroHabitacion
     AND r.fechaIngreso < :fechaEgreso
     AND r.fechaEgreso > :fechaIngreso
     """)
     List<Reserva> buscarReservasSolapadas(
-        @Param("idHabitacion") Long idHabitacion,
+        @Param("numeroHabitacion") Integer numeroHabitacion,
         @Param("fechaIngreso") Date fechaIngreso,
         @Param("fechaEgreso") Date fechaEgreso
     );
@@ -29,7 +29,7 @@ public interface ReservaRepository extends CrudRepository<Reserva, Long> {
     @Query("""
     SELECT DISTINCT r FROM Reserva r
     LEFT JOIN r.pasajeros p
-    LEFT JOIN r.responsableReserva rr
+    LEFT JOIN r.responsable rr
     WHERE LOWER(p.nombre) LIKE LOWER(CONCAT('%', :nombre, '%'))
        OR LOWER(p.apellido) LIKE LOWER(CONCAT('%', :nombre, '%'))
        OR LOWER(rr.nombre) LIKE LOWER(CONCAT('%', :nombre, '%'))

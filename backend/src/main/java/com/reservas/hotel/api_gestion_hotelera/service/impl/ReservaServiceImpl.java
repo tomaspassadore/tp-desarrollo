@@ -15,7 +15,6 @@ import com.reservas.hotel.api_gestion_hotelera.entities.Habitacion;
 import com.reservas.hotel.api_gestion_hotelera.entities.Pasajero;
 import com.reservas.hotel.api_gestion_hotelera.entities.Reserva;
 import com.reservas.hotel.api_gestion_hotelera.entities.enums.EstadoHabitacion;
-import com.reservas.hotel.api_gestion_hotelera.entities.enums.EstadoPasajero;
 import com.reservas.hotel.api_gestion_hotelera.exception.ConflictoReservaException;
 import com.reservas.hotel.api_gestion_hotelera.repository.PasajeroRepository;
 import com.reservas.hotel.api_gestion_hotelera.repository.ReservaRepository;
@@ -50,8 +49,9 @@ public class ReservaServiceImpl implements ReservaService {
         throw new RuntimeException("La fecha de ingreso debe ser anterior a la fecha de egreso");
         }
 
-        Long idHabitacion = nuevaReserva.getHabitacion().getId();
-        Habitacion habitacion = habitacionService.buscarPorId(idHabitacion)
+        // Buscar habitación por número (nuevo identificador lógico)
+        Integer numeroHabitacion = nuevaReserva.getHabitacion().getNumero();
+        Habitacion habitacion = habitacionService.buscarPorNumero(numeroHabitacion)
                 .orElseThrow(() -> new RuntimeException("La habitación no existe"));
 
         if (habitacion.getEstado() != EstadoHabitacion.LIBRE) {
@@ -60,7 +60,7 @@ public class ReservaServiceImpl implements ReservaService {
 
         //VALIDACIÓN DE SOLAPAMIENTO
         List<Reserva> reservasSolapadas = reservaRepository.buscarReservasSolapadas(
-                idHabitacion,
+                habitacion.getNumero(),
                 nuevaReserva.getFechaIngreso(),
                 nuevaReserva.getFechaEgreso()
         );
@@ -76,24 +76,44 @@ public class ReservaServiceImpl implements ReservaService {
         return reservaRepository.save(nuevaReserva);
     }
 
+    @Override
+    @Transactional
+    public Reserva crearReserva(Reserva nuevaReserva, String dniPasajero) {
+        // Si se proporciona el DNI, buscar el pasajero y asignarlo como responsable
+        if (dniPasajero != null && !dniPasajero.trim().isEmpty()) {
+            List<Pasajero> pasajeros = pasajeroRepository.buscarPorDni(dniPasajero.trim());
+            if (pasajeros.isEmpty()) {
+                throw new RuntimeException("No se encontró un pasajero con DNI: " + dniPasajero);
+            }
+            if (pasajeros.size() > 1) {
+                throw new RuntimeException("Se encontraron múltiples pasajeros con DNI: " + dniPasajero);
+            }
+            // Asignar el pasajero encontrado como responsable
+            nuevaReserva.setResponsable(pasajeros.get(0));
+        }
+        
+        // Llamar al método original para el resto de la lógica
+        return crearReserva(nuevaReserva);
+    }
+
 
     // ==========================================================
     // CU11 - Baja lógica de PASAJERO
     // ==========================================================
-    @Override
-    @Transactional
-    public void darBajaPasajero(Long idPasajero) {
+    // @Override
+    // @Transactional
+    // public void darBajaPasajero(Long idPasajero) {
 
-        Pasajero pasajero = pasajeroRepository.findById(idPasajero)
-                .orElseThrow(() -> new RuntimeException("Pasajero no encontrado"));
+    //     Pasajero pasajero = pasajeroRepository.findById(idPasajero)
+    //             .orElseThrow(() -> new RuntimeException("Pasajero no encontrado"));
 
-        if (pasajero.getEstado() == EstadoPasajero.INACTIVO) {
-            throw new RuntimeException("El pasajero ya se encuentra dado de baja");
-        }
+    //     if (pasajero.getEstado() == EstadoPasajero.INACTIVO) {
+    //         throw new RuntimeException("El pasajero ya se encuentra dado de baja");
+    //     }
 
-        pasajero.setEstado(EstadoPasajero.INACTIVO);
-        pasajeroRepository.save(pasajero);
-    }
+    //     pasajero.setEstado(EstadoPasajero.INACTIVO);
+    //     pasajeroRepository.save(pasajero);
+    // }
 
 
     // ==========================================================
@@ -106,8 +126,8 @@ public class ReservaServiceImpl implements ReservaService {
 
         Reserva reserva = reservaRepository.findById(reservaRequest.getId())
                 .orElseThrow(() -> new RuntimeException("Reserva no encontrada"));
-        Habitacion habitacion = habitacionService.buscarPorId(
-                reserva.getHabitacion().getId()
+        Habitacion habitacion = habitacionService.buscarPorNumero(
+                reserva.getHabitacion().getNumero()
         ).orElseThrow(() -> new RuntimeException("Habitación no encontrada"));
 
         if (habitacion.getEstado() != EstadoHabitacion.RESERVADA) {
@@ -176,6 +196,12 @@ public class ReservaServiceImpl implements ReservaService {
         return StreamSupport.stream(reservaRepository.findAll().spliterator(), false)
                 .collect(Collectors.toSet());
     }
+
+    @Override
+    public List<Reserva> buscarPorNombreHuesped(String nombre) {
+        return reservaRepository.buscarPorNombreHuesped(nombre);
+    }
+
     @Override
     public Optional<Reserva> buscarPorId(Long id) {
         return reservaRepository.findById(id);

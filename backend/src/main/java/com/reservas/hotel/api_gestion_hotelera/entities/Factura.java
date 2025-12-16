@@ -1,15 +1,25 @@
 package com.reservas.hotel.api_gestion_hotelera.entities;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.reservas.hotel.api_gestion_hotelera.entities.enums.TipoFactura;
-import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.reservas.hotel.api_gestion_hotelera.entities.enums.TipoFactura;
+
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Data
@@ -31,7 +41,7 @@ public class Factura {
     // Relación con la Reserva (0..1) [5]
     @OneToOne
     @JoinColumn(name = "reserva_id", unique = true)
-    @JsonIgnoreProperties({"habitacion","pasajeros","responsableReserva"})
+    @JsonIgnoreProperties({"habitacion","pasajeros","responsable"})
     private Reserva reservaAsociada;
 
     
