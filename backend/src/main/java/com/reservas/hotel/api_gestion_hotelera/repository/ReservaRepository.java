@@ -11,7 +11,7 @@ import org.springframework.stereotype.Repository;
 import com.reservas.hotel.api_gestion_hotelera.entities.Reserva;
 
 // La entidad que maneja es Reserva, y su clave primaria (ID) es Long
-@Repository 
+@Repository
 public interface ReservaRepository extends CrudRepository<Reserva, Long> {
 
     @Query("""
@@ -28,13 +28,26 @@ public interface ReservaRepository extends CrudRepository<Reserva, Long> {
 
     @Query("""
     SELECT DISTINCT r FROM Reserva r
-    LEFT JOIN r.pasajeros p
-    LEFT JOIN r.responsable rr
-    WHERE LOWER(p.nombre) LIKE LOWER(CONCAT('%', :nombre, '%'))
-       OR LOWER(p.apellido) LIKE LOWER(CONCAT('%', :nombre, '%'))
-       OR LOWER(rr.nombre) LIKE LOWER(CONCAT('%', :nombre, '%'))
-       OR LOWER(rr.apellido) LIKE LOWER(CONCAT('%', :nombre, '%'))
+    LEFT JOIN FETCH r.responsable
+    LEFT JOIN FETCH r.habitacion
+    WHERE LOWER(r.responsable.nombre) LIKE LOWER(CONCAT('%', :nombre, '%'))
+       OR LOWER(r.responsable.apellido) LIKE LOWER(CONCAT('%', :nombre, '%'))
     """)
     List<Reserva> buscarPorNombreHuesped(@Param("nombre") String nombre);
+
+    @Query("""
+    SELECT DISTINCT r FROM Reserva r
+    LEFT JOIN FETCH r.responsable
+    LEFT JOIN FETCH r.habitacion
+    WHERE r.responsable.nroDocumento = :dni
+    """)
+    List<Reserva> buscarPorDniHuesped(@Param("dni") String dni);
+
+    @Query("""
+    SELECT DISTINCT r FROM Reserva r
+    LEFT JOIN FETCH r.responsable
+    LEFT JOIN FETCH r.habitacion
+    """)
+    List<Reserva> findAllWithRelations();
 
 }

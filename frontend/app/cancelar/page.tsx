@@ -70,21 +70,33 @@ export default function CancelarReserva() {
   const [ultimaBusquedaEjecutada, setUltimaBusquedaEjecutada] = useState("")
   const [cancelandoId, setCancelandoId] = useState<string | null>(null)
 
-  const buscarReservasPorNombre = async (nombre: string) => {
+  // Función auxiliar para detectar si el input es un DNI (solo números)
+  const esDni = (valor: string): boolean => {
+    const soloNumeros = /^\d+$/.test(valor.trim())
+    return soloNumeros && valor.trim().length >= 6 // DNI típicamente tiene al menos 6 dígitos
+  }
+
+  const buscarReservas = async (busqueda: string) => {
     try {
       setCargando(true)
       setError(null)
-      const nombreTrim = nombre.trim()
-      if (!nombreTrim) {
+      const busquedaTrim = busqueda.trim()
+      if (!busquedaTrim) {
         setReservas([])
         setUltimaBusquedaEjecutada("")
         setCargando(false)
         return
       }
 
-      setUltimaBusquedaEjecutada(nombreTrim)
+      setUltimaBusquedaEjecutada(busquedaTrim)
 
-      const data = await apiFetch<ApiReserva[]>(`/reservas/buscar?nombre=${encodeURIComponent(nombreTrim)}`, {
+      // Determinar si buscar por DNI o por nombre
+      const buscarPorDni = esDni(busquedaTrim)
+      const endpoint = buscarPorDni
+        ? `/reservas/buscar-por-dni?dni=${encodeURIComponent(busquedaTrim)}`
+        : `/reservas/buscar?nombre=${encodeURIComponent(busquedaTrim)}`
+
+      const data = await apiFetch<ApiReserva[]>(endpoint, {
         method: "GET",
       })
 
@@ -111,8 +123,13 @@ export default function CancelarReserva() {
       })
 
       setReservas(mapeadas)
+
+      if (mapeadas.length === 0) {
+        setError(null) // Limpiar error si no hay resultados pero la búsqueda fue exitosa
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al cargar las reservas")
+      setReservas([])
       console.error("Error al cargar reservas:", err)
     } finally {
       setCargando(false)
@@ -150,7 +167,7 @@ export default function CancelarReserva() {
         title: "Reserva cancelada",
         description: `La reserva ${idTrim} fue cancelada correctamente.`,
       })
-      await buscarReservasPorNombre(busqueda)
+      await buscarReservas(busqueda)
     } catch (err) {
       const message = err instanceof Error ? err.message : "Error al cancelar la reserva"
       toast({
@@ -178,15 +195,20 @@ export default function CancelarReserva() {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <Input
-                  placeholder="Buscar por nombre del huésped..."
+                  placeholder="Buscar por nombre o DNI del huésped..."
                   className="pl-10"
                   value={busqueda}
                   onChange={(e) => setBusqueda(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      buscarReservas(busqueda)
+                    }
+                  }}
                 />
               </div>
               <Button
                 className="bg-blue-600 hover:bg-blue-700"
-                onClick={() => buscarReservasPorNombre(busqueda)}
+                onClick={() => buscarReservas(busqueda)}
                 disabled={cargando || cancelandoId !== null}
               >
                 Buscar
@@ -206,53 +228,51 @@ export default function CancelarReserva() {
           <CardContent className="p-0">
             {cargando ? (
               <div className="p-8 text-center text-gray-600">Cargando reservas...</div>
-            )
-              // : error ? (
-              //   <div className="p-8 text-center text-red-600">Error: {error}</div>
-              // ) : !busqueda.trim() ? (
-              //   <div className="p-8 text-center text-gray-600">Ingresá un nombre y presioná Buscar</div>
-              // ) : !busquedaCoincide ? (
-              //   <div className="p-8 text-center text-gray-600">
-              //     Terminá de escribir el nombre y presioná Buscar para ver resultados
-              //   </div>
-              // ) : reservasFiltradas.length === 0 ? (
-              //   <div className="p-8 text-center text-gray-600">No se encontraron reservas</div>
-              // ) 
-              : (
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-gray-50">
-                      <TableHead className="font-medium text-gray-700">ID</TableHead>
-                      <TableHead className="font-medium text-gray-700">Huésped</TableHead>
-                      <TableHead className="font-medium text-gray-700">Habitación</TableHead>
-                      <TableHead className="font-medium text-gray-700">Entrada</TableHead>
-                      <TableHead className="font-medium text-gray-700">Salida</TableHead>
-                      <TableHead className="font-medium text-gray-700">Acción</TableHead>
+            ) : error ? (
+              <div className="p-8 text-center text-red-600">Error: {error}</div>
+            ) : !busqueda.trim() ? (
+              <div className="p-8 text-center text-gray-600">Ingresá un nombre o DNI y presioná Buscar</div>
+            ) : !busquedaCoincide ? (
+              <div className="p-8 text-center text-gray-600">
+                Terminá de escribir y presioná Buscar para ver resultados
+              </div>
+            ) : reservasFiltradas.length === 0 ? (
+              <div className="p-8 text-center text-gray-600">No se encontraron reservas</div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-gray-50">
+                    <TableHead className="font-medium text-gray-700">ID</TableHead>
+                    <TableHead className="font-medium text-gray-700">Huésped</TableHead>
+                    <TableHead className="font-medium text-gray-700">Habitación</TableHead>
+                    <TableHead className="font-medium text-gray-700">Entrada</TableHead>
+                    <TableHead className="font-medium text-gray-700">Salida</TableHead>
+                    <TableHead className="font-medium text-gray-700">Acción</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {reservasFiltradas.map((reserva) => (
+                    <TableRow key={reserva.id} className="hover:bg-gray-50">
+                      <TableCell className="font-mono">{reserva.id}</TableCell>
+                      <TableCell className="font-medium">{reserva.huesped}</TableCell>
+                      <TableCell>{reserva.habitacion}</TableCell>
+                      <TableCell>{reserva.entrada}</TableCell>
+                      <TableCell>{reserva.salida}</TableCell>
+                      <TableCell>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => cancelarReserva(reserva.id)}
+                          disabled={cancelandoId !== null}
+                        >
+                          {cancelandoId === reserva.id ? "Cancelando..." : "Cancelar"}
+                        </Button>
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {reservasFiltradas.map((reserva) => (
-                      <TableRow key={reserva.id} className="hover:bg-gray-50">
-                        <TableCell className="font-mono">{reserva.id}</TableCell>
-                        <TableCell className="font-medium">{reserva.huesped}</TableCell>
-                        <TableCell>{reserva.habitacion}</TableCell>
-                        <TableCell>{reserva.entrada}</TableCell>
-                        <TableCell>{reserva.salida}</TableCell>
-                        <TableCell>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => cancelarReserva(reserva.id)}
-                            disabled={cancelandoId !== null}
-                          >
-                            {cancelandoId === reserva.id ? "Cancelando..." : "Cancelar"}
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
       </div>

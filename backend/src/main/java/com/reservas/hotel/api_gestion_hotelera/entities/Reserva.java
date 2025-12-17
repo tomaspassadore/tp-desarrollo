@@ -3,6 +3,8 @@ package com.reservas.hotel.api_gestion_hotelera.entities;
 import java.util.Date;
 import java.util.Set;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -35,16 +37,20 @@ public class Reserva {
     // Una reserva pertenece a una habitación (Habitacion)
     @ManyToOne
     @JoinColumn(name = "habitacion_id", nullable = false)
+    @JsonIgnoreProperties({"tipoHabitacion"})
     private Habitacion habitacion;
 
     // Relación muchos-a-muchos con Pasajero
     // Se crea una tabla intermedia reserva_pasajero con reserva_id y pasajero_id
     @ManyToMany
     @JoinTable(name = "reserva_pasajero", joinColumns = @JoinColumn(name = "reserva_id"), inverseJoinColumns = @JoinColumn(name = "pasajero_id"))
+    @JsonIgnoreProperties({"reservas", "direccion"})
     private Set<Pasajero> pasajeros;
 
     // Relación con el pasajero responsable de la reserva
     @ManyToOne
     @JoinColumn(name = "responsable_id", nullable = false)
+    @JsonIgnoreProperties({"reservas", "direccion"})
     private Pasajero responsable;
+
 }

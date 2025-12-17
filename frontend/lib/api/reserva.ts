@@ -24,7 +24,7 @@ export type CrearReservaRequest = {
 }
 
 export function crearReserva(payload: CrearReservaRequest) {
-  return apiFetch<Reserva>("/reservas", {
+  return apiFetch<Reserva>("/reservas/crear", {
     method: "POST",
     json: payload,
   })

@@ -1,28 +1,23 @@
 package com.reservas.hotel.api_gestion_hotelera.controller;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.Set; // <-- USADO
+import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;      // <-- USADO
-import org.springframework.web.bind.annotation.DeleteMapping;  // <-- USADO
+import org.springframework.http.ResponseEntity; // <-- USADO
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;                          // <-- USADO
-import org.springframework.web.bind.annotation.PutMapping;                     // <-- USADO
+import org.springframework.web.bind.annotation.PathVariable;      // <-- USADO
+import org.springframework.web.bind.annotation.PostMapping;  // <-- USADO
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestMapping;                          // <-- USADO
+import org.springframework.web.bind.annotation.RequestParam;                     // <-- USADO
 import org.springframework.web.bind.annotation.RestController;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.reservas.hotel.api_gestion_hotelera.entities.Factura;
-import com.reservas.hotel.api_gestion_hotelera.entities.Habitacion;
 import com.reservas.hotel.api_gestion_hotelera.entities.Reserva;
 import com.reservas.hotel.api_gestion_hotelera.service.ReservaService;
 
@@ -31,104 +26,21 @@ import com.reservas.hotel.api_gestion_hotelera.service.ReservaService;
 @RequestMapping("/api/reservas") // Define la URL base del recurso
 public class ReservaController {
     
-    // Inyección de la dependencia de la Capa de Servicio [4]
     @Autowired 
-    private ReservaService reservaService; // <-- USADO (La variable ya no tiene el warning)
+    private ReservaService reservaService;
     
-    @Autowired
-    private ObjectMapper objectMapper;
-    
-    // ==========================================================
-    // 1. POST: CREAR RECURSO (CU04: Reservar habitación) [5]
-    // Mínimo 2 Endpoints de cada tipo requerido [6]
-    // ==========================================================
-
-    @PostMapping
-    // @RequestBody mapea el JSON de la petición a un objeto Java [7]
-    public ResponseEntity<Reserva> crearReserva(@RequestBody Map<String, Object> requestMap) {
+    //Endpoint POST para crear una reserva usando el DNI del pasajero
+    @PostMapping("/crear")
+    public ResponseEntity<?> crearReserva(@RequestBody Reserva reserva) {
         try {
-            // Extraer el DNI del pasajero si viene en el request
-            String dniPasajero = requestMap.containsKey("dniPasajero") 
-                ? (String) requestMap.get("dniPasajero") 
-                : null;
+            Reserva reservaCreada = reservaService.crearReserva(reserva);
+            return new ResponseEntity<>(reservaCreada, HttpStatus.CREATED);
             
-            // Extraer y validar datos del request
-            if (!requestMap.containsKey("fechaIngreso") || !requestMap.containsKey("fechaEgreso") 
-                || !requestMap.containsKey("habitacion")) {
-                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-            }
-            
-            // Extraer número de habitación
-            @SuppressWarnings("unchecked")
-            Map<String, Object> habitacionMap = (Map<String, Object>) requestMap.get("habitacion");
-            if (habitacionMap == null || !habitacionMap.containsKey("numero")) {
-                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-            }
-            
-            Object numeroObj = habitacionMap.get("numero");
-            Integer numeroHabitacion;
-            if (numeroObj instanceof String) {
-                try {
-                    numeroHabitacion = Integer.parseInt((String) numeroObj);
-                } catch (NumberFormatException e) {
-                    e.printStackTrace();
-                    return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-                }
-            } else if (numeroObj instanceof Integer) {
-                numeroHabitacion = (Integer) numeroObj;
-            } else if (numeroObj instanceof Number) {
-                numeroHabitacion = ((Number) numeroObj).intValue();
-            } else {
-                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-            }
-            
-            // Crear Habitacion temporal solo con el número (el servicio la buscará completa)
-            Habitacion habitacionTemporal = new Habitacion();
-            habitacionTemporal.setNumero(numeroHabitacion);
-            
-            // Convertir fechas de String a Date
-            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-            dateFormat.setLenient(false);
-            
-            Date fechaIngreso;
-            Date fechaEgreso;
-            
-            try {
-                Object fechaIngresoObj = requestMap.get("fechaIngreso");
-                if (fechaIngresoObj instanceof String) {
-                    fechaIngreso = dateFormat.parse((String) fechaIngresoObj);
-                } else if (fechaIngresoObj instanceof Date) {
-                    fechaIngreso = (Date) fechaIngresoObj;
-                } else {
-                    return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-                }
-                
-                Object fechaEgresoObj = requestMap.get("fechaEgreso");
-                if (fechaEgresoObj instanceof String) {
-                    fechaEgreso = dateFormat.parse((String) fechaEgresoObj);
-                } else if (fechaEgresoObj instanceof Date) {
-                    fechaEgreso = (Date) fechaEgresoObj;
-                } else {
-                    return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-            }
-            
-            // Crear Reserva manualmente
-            Reserva nuevaReserva = new Reserva();
-            nuevaReserva.setFechaIngreso(fechaIngreso);
-            nuevaReserva.setFechaEgreso(fechaEgreso);
-            nuevaReserva.setHabitacion(habitacionTemporal);
-            
-            // Llama a la lógica de negocio (Servicio) con el DNI
-            Reserva reservaGuardada = reservaService.crearReserva(nuevaReserva, dniPasajero); 
-            // Retorna el recurso creado con código HTTP 201 CREATED
-            return new ResponseEntity<>(reservaGuardada, HttpStatus.CREATED);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
-            e.printStackTrace(); // Para debugging
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error al crear la reserva: " + e.getMessage());
         }
     }
     
@@ -157,7 +69,14 @@ public class ReservaController {
         return new ResponseEntity<>(reservas, HttpStatus.OK);
     }
 
-    // Endpoint 3 de GET: Buscar una reserva por ID (Recurso único)
+    // Endpoint 3 de GET: Buscar reservas por DNI del huésped/responsable
+    @GetMapping("/buscar-por-dni")
+    public ResponseEntity<List<Reserva>> buscarReservasPorDni(@RequestParam("dni") String dni) {
+        List<Reserva> reservas = reservaService.buscarPorDniHuesped(dni);
+        return new ResponseEntity<>(reservas, HttpStatus.OK);
+    }
+
+    // Endpoint 4 de GET: Buscar una reserva por ID (Recurso único)
     // @PathVariable mapea el ID de la URL (ej. /api/reservas/123) al parámetro del método [7]
     @GetMapping("/{id}")
     public ResponseEntity<Reserva> obtenerReservaPorId(@PathVariable Long id) {

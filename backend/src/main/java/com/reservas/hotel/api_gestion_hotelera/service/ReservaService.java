@@ -9,15 +9,7 @@ import com.reservas.hotel.api_gestion_hotelera.entities.Reserva;
 
 public interface ReservaService {
 
-    Reserva crearReserva(Reserva nuevaReserva);
-    
-    /**
-     * Crea una reserva y busca el pasajero responsable por DNI
-     * @param nuevaReserva La reserva a crear
-     * @param dniPasajero DNI del pasajero responsable (opcional)
-     * @return La reserva creada
-     */
-    Reserva crearReserva(Reserva nuevaReserva, String dniPasajero); 
+    Reserva crearReserva(Reserva reserva);
     
     // Check-in
     Reserva realizarCheckIn(Reserva reserva); 
@@ -34,6 +26,11 @@ public interface ReservaService {
      * Buscar reservas por nombre/apellido de huésped o responsable.
      */
     List<Reserva> buscarPorNombreHuesped(String nombre);
+
+    /**
+     * Buscar reservas por DNI del huésped responsable.
+     */
+    List<Reserva> buscarPorDniHuesped(String dni);
 
     Factura facturar(Long id);
 

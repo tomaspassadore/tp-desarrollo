@@ -55,7 +55,9 @@ export default function ReservarHabitacion() {
         habitacion: {
           numero: formData.habitacion,
         },
-        dniPasajero: formData.huesped,
+        responsable: {
+          nroDocumento: formData.huesped,
+        },
       }
 
       await crearReserva(payload)
