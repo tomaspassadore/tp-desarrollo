@@ -1,5 +1,6 @@
 package com.reservas.hotel.api_gestion_hotelera.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.reservas.hotel.api_gestion_hotelera.entities.enums.EstadoHabitacion;
 
 import jakarta.persistence.Column;
@@ -31,6 +32,7 @@ public class Habitacion {
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "tipo_habitacion_id", nullable = false)
+    @JsonIgnoreProperties({"cantidadDisponible"})
     private TipoHabitacion tipoHabitacion;
     
 }

@@ -37,7 +37,6 @@ public class Reserva {
     // Una reserva pertenece a una habitación (Habitacion)
     @ManyToOne
     @JoinColumn(name = "habitacion_id", nullable = false)
-    @JsonIgnoreProperties({"tipoHabitacion"})
     private Habitacion habitacion;
 
     // Relación muchos-a-muchos con Pasajero

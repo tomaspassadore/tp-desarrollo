@@ -10,7 +10,8 @@ import com.reservas.hotel.api_gestion_hotelera.entities.enums.TipoFactura;
 // Importaciones de Repositorios (Capa de Persistencia)
 import com.reservas.hotel.api_gestion_hotelera.repository.FacturaRepository; 
 import com.reservas.hotel.api_gestion_hotelera.repository.NotaDeCreditoRepository;
-import com.reservas.hotel.api_gestion_hotelera.repository.PagoRepository; 
+import com.reservas.hotel.api_gestion_hotelera.repository.PagoRepository;
+import com.reservas.hotel.api_gestion_hotelera.repository.ReservaRepository; 
 
 // Importaciones del Servicio y Utilidades
 import com.reservas.hotel.api_gestion_hotelera.service.ContabilidadService;
@@ -36,7 +37,10 @@ public class ContabilidadServiceImpl implements ContabilidadService {
     private NotaDeCreditoRepository notaDeCreditoRepository;
 
     @Autowired
-    private PagoRepository pagoRepository; 
+    private PagoRepository pagoRepository;
+    
+    @Autowired
+    private ReservaRepository reservaRepository;
     
     // ==========================================================
     // MÉTODOS DE FACTURA (CU07)
@@ -82,6 +86,21 @@ public class ContabilidadServiceImpl implements ContabilidadService {
         return facturaRepository.save(factura);
     }
 
+    
+    @Override
+    @Transactional
+    public Factura crearFactura(Long reservaId, Double importeTotal, Date fechaDeEmision, TipoFactura tipo) {
+        Reserva reserva = reservaRepository.findById(reservaId)
+                .orElseThrow(() -> new RuntimeException("Reserva no encontrada con ID: " + reservaId));
+        
+        Factura factura = new Factura();
+        factura.setReservaAsociada(reserva);
+        factura.setImporteTotal(importeTotal);
+        factura.setFechaDeEmision(fechaDeEmision);
+        factura.setTipo(tipo != null ? tipo : TipoFactura.A);
+        
+        return facturaRepository.save(factura);
+    }
     
     @Override // <--- Implementa ContabilidadService.buscarFacturaPorId(Long)
     public Optional<Factura> buscarFacturaPorId(Long id) {

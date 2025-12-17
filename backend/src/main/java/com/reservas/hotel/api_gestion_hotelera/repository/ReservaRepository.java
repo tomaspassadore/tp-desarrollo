@@ -39,6 +39,7 @@ public interface ReservaRepository extends CrudRepository<Reserva, Long> {
     SELECT DISTINCT r FROM Reserva r
     LEFT JOIN FETCH r.responsable
     LEFT JOIN FETCH r.habitacion
+    LEFT JOIN FETCH r.habitacion.tipoHabitacion
     WHERE r.responsable.nroDocumento = :dni
     """)
     List<Reserva> buscarPorDniHuesped(@Param("dni") String dni);
